@@ -2,7 +2,7 @@ import numpy as np
 
 import mytorch.autograd_engine as autograd_engine
 from mytorch.nn import functional as F
-from mytorch.autograd_engine import AccumulateGrad
+
 
 
 class Tensor:
@@ -21,6 +21,7 @@ class Tensor:
         self.requires_grad = requires_grad
         self.is_leaf = is_leaf
         self.grad_fn = None # Set during forward pass
+        self.acc = F.AccumulateGrad(self)
         self.grad = None
         self.is_parameter = is_parameter
 

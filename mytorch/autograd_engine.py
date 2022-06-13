@@ -1,7 +1,5 @@
 import pdb
-
 from mytorch import tensor
-
 
 def backward(grad_fn, grad_of_outputs):
     """Recursive DFS that traverses comp graph, handing back gradients as it goes.
@@ -12,24 +10,19 @@ def backward(grad_fn, grad_of_outputs):
     Returns:
         No return statement needed.
     """
-    # 1) Calculate gradients of final node w.r.t. to the current nodes parents
-    if grad_fn is None:
-        return
-    new_grad = grad_fn.apply(grad_of_outputs)
-
-    # 2) Pass gradient onto current node's beloved parents (recursive DFS)
-
-    for i in range(len(grad_fn.next_functions)):
-        nxt = grad_fn.next_functions[i]
-        if nxt is not None:
-            if type(new_grad) == tensor.Tensor:
-                grad = new_grad
-            else:
-                grad = new_grad[i]
-            backward(nxt, grad)
-
-
-
+    # Calculate gradients of final node w.r.t. to the current nodes parents
+    if grad_fn is not None:
+        new_grad = grad_fn.apply(grad_of_outputs)
+        # Pass gradient onto current node's parents (recursive DFS)
+        for i in range(len(grad_fn.next_functions)):
+            nxt = grad_fn.next_functions[i]
+            if nxt is not None:
+                if type(new_grad) == tensor.Tensor:
+                    grad = new_grad
+                else:
+                    grad = new_grad[i]
+                backward(nxt, grad)
+    
 class Function:
     """Superclass for linking nodes to the computational graph.
     Operations in `functional.py` should inherit from this"""
@@ -45,77 +38,34 @@ class Function:
     @classmethod
     def apply(cls, *args):
         """Runs forward of subclass and links node to the comp graph.
-        Args:
-            cls (subclass of Function): (NOTE: Don't provide this;
-                                               already provided by `@classmethod`)
-                                        Current function, such as Add, Sub, etc.
-            args (tuple): arguments for the subclass's `.forward()`.
-                  (google "python asterisk arg")
+        Args: cls (subclass of Function): (NOTE: Don't provide this; already provided by `@classmethod`)
+        Current function, such as Add, Sub, etc. args (tuple): arguments for the subclass's `.forward()`.
+        (google "python asterisk arg")
         Returns:
             Tensor: Output tensor from operation that stores the current node.
         """
         # Creates BackwardFunction obj representing the current node
         backward_function = BackwardFunction(cls)
-
         # Run subclass's forward with context manager and operation input args
         output_tensor = cls.forward(backward_function.ctx, *args)
-
-        # TODO: Complete code below
-        # 1) For each parent tensor in args, add their node to `backward_function.next_functions`
+        # For each parent tensor in args, add their node to `backward_function.next_functions`
         for parent in args:
-            # first check if this is tensor is a parent node
-            #    Note: Parents may not need to be connected to the comp graph. How do we handle this?
-            #    (see Appendix A.1 for hints)
             if type(parent) == tensor.Tensor:
                 if parent.is_leaf and parent.requires_grad:
-                    #    Note: Parents may/may not already have their own nodes. How do we handle this?
-                    # we'll need to accumulate the gradient so we initialize accumulate grad
-                    next_function = AccumulateGrad(parent)
-                # then check if this is a backward function node
+                    # accumulate the gradient so we initialize accumulate grad
+                    next_function = parent.acc
+                    # then check if this is a backward function node
                 elif not parent.is_leaf and parent.requires_grad:
-                    # then it's a backward function
-                    # we'll need to add the backward function to next function
+                    # backward function
                     next_function = parent.grad_fn
-                # if it's none of the above, then this is a constant node
+                    # constant node
                 else:
                     next_function = None
-
                 backward_function.next_functions.append(next_function)
-
-            # 2) Store current node in output tensor (see `tensor.py` for ideas)
+            # Store current node in output tensor 
         output_tensor.grad_fn = backward_function
 
         return output_tensor
-
-
-class AccumulateGrad:
-    """Represents node where gradient must be accumulated.
-    Args:
-        tensor (Tensor): The tensor where the gradients are accumulated in `.grad`
-    """
-
-    def __init__(self, tensor):
-        self.variable = tensor
-        self.next_functions = []  # nodes of current node's parents (this WILL be empty)
-        # exists just to be consistent in format with BackwardFunction
-        self.function_name = "AccumulateGrad"  # just for convenience lol
-
-    def apply(self, arg):
-        """Accumulates gradient provided.
-        (Hint: Notice name of function is the same as BackwardFunction's `.apply()`)
-        Args:
-            arg (Tensor): Gradient to accumulate
-        """
-        # if no grad stored yet, initialize. otherwise +=
-        if self.variable.grad is None:
-            self.variable.grad = tensor.Tensor(arg.data)
-        else:
-            self.variable.grad.data += arg.data
-
-        # Some tests to make sure valid grads were stored.
-        shape = self.variable.shape
-        grad_shape = self.variable.grad.shape
-        assert shape == grad_shape, (shape, grad_shape)
 
 
 class ContextManager:
@@ -158,7 +108,6 @@ class BackwardFunction:
         cls (subclass of Function): Operation being run. Don't worry about this;
                                     already handled in `Function.apply()`
     """
-
     def __init__(self, cls):
         self.ctx = ContextManager()  # Just in case args need to be passed (see above)
         self._forward_cls = cls

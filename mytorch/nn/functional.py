@@ -1,6 +1,4 @@
-
 import numpy as np
-
 from mytorch.tensor import *
 from mytorch.autograd_engine import Function
 
@@ -339,10 +337,39 @@ class Sqrt(Function):
         a, = ctx.saved_tensors
         output = Tensor(1/2 *(a.data**(-1/2)) * grad_output.data)
         return output
-        
-                
 
 
+class AccumulateGrad():
+    """Represents node where gradient must be accumulated.
+    Args:
+        tensor (Tensor): The tensor where the gradients are accumulated in `.grad`
+    """
+
+    def __init__(self, tensor):
+        self.variable = tensor
+        self.next_functions = []  # nodes of current node's parents (this WILL be empty)
+        # exists just to be consistent in format with BackwardFunction
+        self.function_name = "AccumulateGrad"  # just for convenience lol
+
+    def apply(self, arg):
+        """Accumulates gradient provided.
+        (Hint: Notice name of function is the same as BackwardFunction's `.apply()`)
+        Args:
+            arg (Tensor): Gradient to accumulate
+        """
+        # if no grad stored yet, initialize. otherwise +=
+        if self.variable.grad is None:
+            self.variable.grad = Tensor(arg.data)
+        else:
+            self.variable.grad.data += arg.data
+
+        # Some tests to make sure valid grads were stored.
+        shape = self.variable.shape
+        grad_shape = self.variable.grad.shape
+        assert shape == grad_shape, (shape, grad_shape)       
+
+
+    
 def cross_entropy(predicted, target):
     """Calculates Cross Entropy Loss (XELoss) between logits and true labels.
     For MNIST, don't call this function directly; use nn.loss.CrossEntropyLoss instead.
