@@ -53,7 +53,7 @@ class Function:
             if type(parent) == tensor.Tensor:
                 if parent.is_leaf and parent.requires_grad:
                     # accumulate the gradient so we initialize accumulate grad
-                    next_function = parent.acc
+                    next_function = parent.acc()
                     # then check if this is a backward function node
                 elif not parent.is_leaf and parent.requires_grad:
                     # backward function

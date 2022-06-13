@@ -21,7 +21,6 @@ class Tensor:
         self.requires_grad = requires_grad
         self.is_leaf = is_leaf
         self.grad_fn = None # Set during forward pass
-        self.acc = F.AccumulateGrad(self)
         self.grad = None
         self.is_parameter = is_parameter
 
@@ -162,6 +161,8 @@ class Tensor:
     def exp(self):
         """Element-wise exp of this tensor, adding to comp graph"""
         return F.Exp.apply(self)
+    def acc(self):
+        return F.AccumulateGrad(self)
     
     def sqrt(self):
         return F.Sqrt.apply(self)    
