@@ -45,7 +45,9 @@ class Linear(Module):
             Tensor: (batch_size, out_features)
         """
         # check that the input is a tensor
-        if not (type(x) == Tensor or type(self.weight) == Tensor):
+                # if not type(x).__name__ == 'Tensor':
+                # raise Exception("Only dropout for tensors is supported")
+        if not (type(x).__name__ == 'Tensor' or type(self.weight).__name__ == 'Tensor'):
             raise Exception(f"X must be Tensor. Got {type(x)}")
         output = x @ self.weight.T() + self.bias
         return output

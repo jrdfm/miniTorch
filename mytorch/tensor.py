@@ -17,7 +17,12 @@ class Tensor:
     """
     def __init__(self, data, requires_grad=False, is_leaf=True,
                  is_parameter=False):
-        self.data = np.array(data)
+        if  type(data).__name__ == 'ndarray':
+            self.data = data
+        else:
+            self.data = np.array(data)
+            
+        # print(type(data))
         self.requires_grad = requires_grad
         self.is_leaf = is_leaf
         self.grad_fn = None # Set during forward pass

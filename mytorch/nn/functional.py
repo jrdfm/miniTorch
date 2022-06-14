@@ -1,5 +1,5 @@
 import numpy as np
-from mytorch.tensor import *
+from mytorch import tensor
 from mytorch.autograd_engine import Function
 
 
@@ -17,13 +17,13 @@ class Transpose(Function):
         if not len(a.shape) == 2:
             raise Exception("Arg for Transpose must be 2D tensor: {}".format(a.shape))
         requires_grad = a.requires_grad
-        b = Tensor(a.data.T, requires_grad=requires_grad,
+        b = tensor.Tensor(a.data.T, requires_grad=requires_grad,
                                     is_leaf=not requires_grad)
         return b
 
     @staticmethod
     def backward(ctx, grad_output):
-        return Tensor(grad_output.data.T)
+        return tensor.Tensor(grad_output.data.T)
 
 class Reshape(Function):
     @staticmethod
@@ -32,13 +32,13 @@ class Reshape(Function):
             raise Exception("Arg for Reshape must be tensor: {}".format(type(a).__name__))
         ctx.shape = a.shape
         requires_grad = a.requires_grad
-        c = Tensor(a.data.reshape(shape), requires_grad=requires_grad,
+        c = tensor.Tensor(a.data.reshape(shape), requires_grad=requires_grad,
                                                  is_leaf=not requires_grad)
         return c
 
     @staticmethod
     def backward(ctx, grad_output):
-        return Tensor(grad_output.data.reshape(ctx.shape)), None
+        return tensor.Tensor(grad_output.data.reshape(ctx.shape)), None
 
 class Log(Function):
     @staticmethod
@@ -47,14 +47,14 @@ class Log(Function):
             raise Exception("Arg for Log must be tensor: {}".format(type(a).__name__))
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
-        c = Tensor(np.log(a.data), requires_grad=requires_grad,
+        c = tensor.Tensor(np.log(a.data), requires_grad=requires_grad,
                                           is_leaf=not requires_grad)
         return c
 
     @staticmethod
     def backward(ctx, grad_output):
         a = ctx.saved_tensors[0]
-        return Tensor(grad_output.data / a.data)
+        return tensor.Tensor(grad_output.data / a.data)
 
 """EXAMPLE: This represents an Op:Add node to the comp graph.
 
@@ -79,7 +79,7 @@ class Add(Function):
         # Create addition output and sets `requires_grad and `is_leaf`
         # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data + b.data, requires_grad=requires_grad,
+        c = tensor.Tensor(a.data + b.data, requires_grad=requires_grad,
                                            is_leaf=not requires_grad)
         return c
 
@@ -95,8 +95,8 @@ class Add(Function):
         grad_b = np.ones(b.shape) * grad_output.data
 
         # the order of gradients returned should match the order of the arguments
-        grad_a = Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = Tensor(unbroadcast(grad_b, b.shape))
+        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
+        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
         return grad_a, grad_b
 
 
@@ -108,7 +108,7 @@ class Sub(Function):
             raise Exception("Both args must be Tensors & of equal shape: {}, {}".format(type(a).__name__, type(b).__name__))
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data - b.data,requires_grad = requires_grad,is_leaf = not requires_grad)
+        c = tensor.Tensor(a.data - b.data,requires_grad = requires_grad,is_leaf = not requires_grad)
         return c
 
     @staticmethod
@@ -122,8 +122,8 @@ class Sub(Function):
         grad_b = -np.ones(b.shape) * grad_output.data
 
         # the order of gradients returned should match the order of the arguments
-        grad_a = Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = Tensor(unbroadcast(grad_b, b.shape))
+        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
+        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
         return grad_a, grad_b
 
 class Mul(Function):
@@ -141,7 +141,7 @@ class Mul(Function):
         # Create addition output and sets `requires_grad and `is_leaf`
         # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data * b.data, requires_grad=requires_grad,
+        c = tensor.Tensor(a.data * b.data, requires_grad=requires_grad,
                                            is_leaf=not requires_grad)
         return c
 
@@ -157,8 +157,8 @@ class Mul(Function):
         grad_b = a.data * grad_output.data
 
         # the order of gradients returned should match the order of the arguments
-        grad_a = Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = Tensor(unbroadcast(grad_b, b.shape))
+        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
+        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
         return grad_a, grad_b
 
 
@@ -173,7 +173,7 @@ class Sum(Function):
             ctx.len = a.shape[axis]
         ctx.keepdims = keepdims
         requires_grad = a.requires_grad
-        c = Tensor(a.data.sum(axis = axis, keepdims = keepdims), \
+        c = tensor.Tensor(a.data.sum(axis = axis, keepdims = keepdims), \
                           requires_grad=requires_grad, is_leaf=not requires_grad)
         #print(a.shape, c.shape)
         return c
@@ -191,7 +191,7 @@ class Sum(Function):
 
         assert grad.shape == ctx.shape
         # Take note that gradient tensors SHOULD NEVER have requires_grad = True.
-        return Tensor(grad), None, None
+        return tensor.Tensor(grad), None, None
 
 class Div(Function):
     @staticmethod
@@ -208,7 +208,7 @@ class Div(Function):
         # Create addition output and sets `requires_grad and `is_leaf`
         # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data / b.data, requires_grad=requires_grad,
+        c = tensor.Tensor(a.data / b.data, requires_grad=requires_grad,
                                            is_leaf=not requires_grad)
         return c
 
@@ -224,8 +224,8 @@ class Div(Function):
         grad_b = (-a.data * grad_output.data) / (b.data ** 2)
 
         # the order of gradients returned should match the order of the arguments
-        grad_a = Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = Tensor(unbroadcast(grad_b, b.shape))
+        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
+        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
         return grad_a, grad_b
 
 # TODO: Implement more Functions below
@@ -237,7 +237,7 @@ class Pow(Function):
         if not (type(a).__name__ == 'Tensor' and type(b).__name__ == 'Tensor'):
             raise Exception("Both args must be Tensors: {}, {}".format(type(a).__name__, type(b).__name__))
         if (type(b).__name__ == 'int'):
-            b = Tensor(np.array(b))
+            b = tensor.Tensor(np.array(b))
         # Check that args have same shape
 
         # Save inputs to access later in backward pass.
@@ -246,7 +246,7 @@ class Pow(Function):
         # Create addition output and sets `requires_grad and `is_leaf`
         # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data**b.data, requires_grad=requires_grad,
+        c = tensor.Tensor(a.data**b.data, requires_grad=requires_grad,
                                            is_leaf=not requires_grad)
         return c
     @staticmethod
@@ -255,7 +255,7 @@ class Pow(Function):
         #b = Tensor.ones(*a.shape) * b
         grad_a =  b.data * (a.data ** (b.data - 1)) * grad_output.data
 
-        grad_a = Tensor(unbroadcast(grad_a, a.shape))
+        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
         return grad_a,None
 
 class Exp(Function):
@@ -271,7 +271,7 @@ class Exp(Function):
         # Create addition output and sets `requires_grad and `is_leaf`
         # (see appendix A for info on those params)
         requires_grad = a.requires_grad 
-        c = Tensor(np.exp(a.data), requires_grad=requires_grad,
+        c = tensor.Tensor(np.exp(a.data), requires_grad=requires_grad,
                                            is_leaf=not requires_grad)
         return c
     @staticmethod
@@ -279,23 +279,24 @@ class Exp(Function):
         a, = ctx.saved_tensors
         grad_a =  np.exp(a.data) * grad_output.data
 
-        return Tensor(grad_a),None
+        return tensor.Tensor(grad_a),None
 
 class MatMul(Function):
     @staticmethod
     def forward(ctx, a, b):
+        
         if not (type(a).__name__ == 'Tensor' and type(b).__name__ == 'Tensor') or \
                     a.data.shape[1] != b.data.shape[0]:
                     raise Exception("Both args must be Tensors & of same shape: {}, {}".format(type(a).__name__, type(b).__name__))
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
-        c = Tensor(a.data @ b.data, requires_grad = requires_grad,is_leaf = not requires_grad)
+        c = tensor.Tensor(a.data @ b.data, requires_grad = requires_grad,is_leaf = not requires_grad)
         return c
     @staticmethod
     def backward(ctx, grad_output):
         a, b  = ctx.saved_tensors
-        grad_a = Tensor(grad_output.data @ b.data.T)
-        grad_b = Tensor(a.data.T @ grad_output.data)
+        grad_a = tensor.Tensor(grad_output.data @ b.data.T)
+        grad_b = tensor.Tensor(a.data.T @ grad_output.data)
 
         return grad_a, grad_b
 
@@ -310,14 +311,14 @@ class ReLU(Function):
         ctx.save_for_backward(a)
         # Create addition output and sets `requires_grad and `is_leaf`
         requires_grad = a.requires_grad 
-        c = Tensor(np.where(a.data > 0,a.data, 0),requires_grad= requires_grad,
+        c = tensor.Tensor(np.where(a.data > 0,a.data, 0),requires_grad= requires_grad,
                     is_leaf= not requires_grad)
         return c
 
     @staticmethod
     def backward(ctx, grad_output):
         a,  = ctx.saved_tensors
-        grad_a = Tensor(np.where(a.data > 0, 1, 0)* grad_output.data)
+        grad_a = tensor.Tensor(np.where(a.data > 0, 1, 0)* grad_output.data)
         
         return grad_a
         
@@ -328,14 +329,14 @@ class Sqrt(Function):
             raise Exception("Arg for Sqrt must be tensor: {}".format(type(a).__name__))
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
-        c = Tensor(np.sqrt(a.data,requires_grad = requires_grad,
+        c = tensor.Tensor(np.sqrt(a.data,requires_grad = requires_grad,
                     is_leaf = not requires_grad))
         return c
             
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
-        output = Tensor(1/2 *(a.data**(-1/2)) * grad_output.data)
+        output = tensor.Tensor(1/2 *(a.data**(-1/2)) * grad_output.data)
         return output
 
 
@@ -359,7 +360,7 @@ class AccumulateGrad():
         """
         # if no grad stored yet, initialize. otherwise +=
         if self.variable.grad is None:
-            self.variable.grad = Tensor(arg.data)
+            self.variable.grad = tensor.Tensor(arg.data)
         else:
             self.variable.grad.data += arg.data
 
@@ -393,10 +394,10 @@ def cross_entropy(predicted, target):
     x = predicted
     y = to_one_hot(target,num_classes)
 
-    max = Tensor(np.max(x.data,axis=1)) #batchsize x 1
+    max = tensor.Tensor(np.max(x.data,axis=1)) #batchsize x 1
     C = (x.T() - max)
     LSM = (C - C.T().exp().sum(axis=1).log()).T()
-    Loss = (LSM*y).sum() / Tensor(-batch_size)
+    Loss = (LSM*y).sum() / tensor.Tensor(-batch_size)
 
     return Loss
 
@@ -407,7 +408,7 @@ class Dropout(Function):
             raise Exception("Only dropout for tensors is supported")
         mask = np.random.binomial(n = 1, p = 1 - p, size = x.shape)
         mask = mask/(1-p)
-        mask = Tensor(mask, requires_grad=False)
+        mask = tensor.Tensor(mask, requires_grad=False)
         ctx.save_for_backward(mask)
         if is_train:
             x *= mask
@@ -416,14 +417,14 @@ class Dropout(Function):
     @staticmethod
     def backward(ctx, grad_output):
         mask, = ctx.saved_tensors
-        return Tensor(grad_output.data * mask.data)
+        return tensor.Tensor(grad_output.data * mask.data)
 
 
 def to_one_hot(arr, num_classes):
     """(Freebie) Converts a tensor of classes to one-hot, useful in XELoss
 
     Example:
-    >>> to_one_hot(Tensor(np.array([1, 2, 0, 0])), 3)
+    >>> to_one_hot(tensor.Tensor(np.array([1, 2, 0, 0])), 3)
     [[0, 1, 0],
      [0, 0, 1],
      [1, 0, 0],
@@ -439,5 +440,5 @@ def to_one_hot(arr, num_classes):
     arr = arr.data.astype(int)
     a = np.zeros((arr.shape[0], num_classes))
     a[np.arange(len(a)), arr] = 1
-    return Tensor(a, requires_grad = True)
+    return tensor.Tensor(a, requires_grad = True)
 
