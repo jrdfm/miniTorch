@@ -1,5 +1,6 @@
 """Problem 3 - Training on MNIST"""
 import numpy as np
+from torch import seed
 
 from mytorch.optim.sgd import SGD
 from mytorch.optim.adam import Adam
@@ -42,9 +43,15 @@ def mnist(train_x, train_y, val_x, val_y):
 
 
 
-    val_accuracies = train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=5)
+    val_accuracies = train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=10)
     return val_accuracies
 
+
+def shuffel(a, b, seed):
+    r = np.random.RandomState(seed)
+    r.shuffle(a)
+    r.seed(seed)
+    r.shuffle(b)
 
 def train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=5):
     """Problem 3.2: Training routine that runs for `num_epochs` epochs.
@@ -58,12 +65,13 @@ def train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epoch
         val_accuracies = []
         train_size = train_x.shape[0]
         
-        SH = False
+        SH = True
         if SH:
-            ix = np.arange(train_size)
-            np.random.shuffle(ix)
-            train_x = train_x[ix]
-            train_y = train_y[ix]
+            shuffel(train_x,train_y, 42)
+            # ix = np.arange(train_size)
+            # np.random.shuffle(ix)
+            # train_x = train_x[ix]
+            # train_y = train_y[ix]
 
         batches = [(x, y) for x, y in zip(np.vsplit(train_x, train_size / BATCH_SIZE),
                                           np.split(train_y, train_size / BATCH_SIZE))]
