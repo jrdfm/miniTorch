@@ -1,8 +1,6 @@
 import pdb
 from mytorch import tensor
 
-
-
 def backward(grad_fn, grad_of_outputs):
     """Recursive DFS that traverses comp graph, handing back gradients as it goes.
     Args:
@@ -83,7 +81,6 @@ class ContextManager:
 
     def __init__(self):
         self.saved_tensors = []  # list that TENSORS get stored in
-
 
     def save_for_backward(self, *args):
         """Saves TENSORS only

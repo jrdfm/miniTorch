@@ -11,9 +11,7 @@ from mytorch.nn.batchnorm import BatchNorm1d
 from mytorch.nn.sequential import Sequential
 from mytorch.tensor import Tensor
 from tqdm import trange, tqdm
-# TODO: Import any mytorch packages you need (XELoss, SGD, etc)
 
-# NOTE: Batch size pre-set to 100. Shouldn't need to change.
 BATCH_SIZE = 100
 
 def mnist(train_x, train_y, val_x, val_y):
@@ -43,15 +41,10 @@ def mnist(train_x, train_y, val_x, val_y):
 
 
 
-    val_accuracies = train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=10)
+    val_accuracies = train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=5)
     return val_accuracies
 
 
-def shuffel(a, b, seed):
-    r = np.random.RandomState(seed)
-    r.shuffle(a)
-    r.seed(seed)
-    r.shuffle(b)
 
 def train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epochs=5):
     """Problem 3.2: Training routine that runs for `num_epochs` epochs.
@@ -68,13 +61,9 @@ def train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epoch
         SH = True
         if SH:
             shuffel(train_x,train_y, 42)
-            # ix = np.arange(train_size)
-            # np.random.shuffle(ix)
-            # train_x = train_x[ix]
-            # train_y = train_y[ix]
 
-        batches = [(x, y) for x, y in zip(np.vsplit(train_x, train_size / BATCH_SIZE),
-                                          np.split(train_y, train_size / BATCH_SIZE))]
+        batches = zip(np.vsplit(train_x, train_size / BATCH_SIZE),
+                                          np.split(train_y, train_size / BATCH_SIZE))
 
         for i, (batch_data, batch_labels) in enumerate(batches):
             optimizer.zero_grad()
@@ -91,6 +80,7 @@ def train(model, optimizer, criterion, train_x, train_y, val_x, val_y, num_epoch
                 accuracy = validate(model, val_x, val_y)
                 val_accuracies.append(accuracy)
                 model.train()
+
         print(f'Epoch {epoch+1}, Loss: {total_loss/(i+1)}, Accuracy: {total_acc/(i+1)}')
 
     return val_accuracies
@@ -105,8 +95,7 @@ def validate(model, val_x, val_y):
     """
     model.eval()
     val_size = val_x.shape[0]
-    batches = [(x, y) for x, y in
-               zip(np.vsplit(val_x, val_size / BATCH_SIZE), np.split(val_y, val_size / BATCH_SIZE))]
+    batches = zip(np.vsplit(val_x, val_size / BATCH_SIZE), np.split(val_y, val_size / BATCH_SIZE))
     num_correct = 0
 
     for i, (batch_data, batch_labels) in enumerate(batches):
@@ -117,3 +106,9 @@ def validate(model, val_x, val_y):
     accuracy = num_correct.sum() / len(val_x)
 
     return accuracy
+
+def shuffel(a, b, seed):
+    r = np.random.RandomState(seed)
+    r.shuffle(a)
+    r.seed(seed)
+    r.shuffle(b)

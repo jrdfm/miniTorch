@@ -2,7 +2,7 @@ import numpy as np
 
 import mytorch.autograd_engine as autograd_engine
 from mytorch.nn import functional as F
-from mytorch.autograd_engine import AccumulateGrad
+
 
 
 class Tensor:
@@ -17,7 +17,12 @@ class Tensor:
     """
     def __init__(self, data, requires_grad=False, is_leaf=True,
                  is_parameter=False):
-        self.data = np.array(data)
+        if  type(data).__name__ == 'ndarray':
+            self.data = data
+        else:
+            self.data = np.array(data)
+            
+        # print(type(data))
         self.requires_grad = requires_grad
         self.is_leaf = is_leaf
         self.grad_fn = None # Set during forward pass
@@ -161,6 +166,11 @@ class Tensor:
     def exp(self):
         """Element-wise exp of this tensor, adding to comp graph"""
         return F.Exp.apply(self)
+    def acc(self):
+        return F.AccumulateGrad(self)
+    
+    def sqrt(self):
+        return F.Sqrt.apply(self)    
 
     def sum(self, axis=None, keepdims=False):
         return F.Sum.apply(self, axis, keepdims)
