@@ -520,8 +520,6 @@ class Conv2d(Function):
     @staticmethod
     def forward(ctx, x, weight, bias, stride, padding):
         """The forward/backward of a Conv2d Layer in the comp graph.
-        
-        
         Args:
             x (Tensor): (batch_size, in_channel, input_size) input data
             weight (Tensor): (out_channel, in_channel, kernel_size)
@@ -533,36 +531,31 @@ class Conv2d(Function):
         """
         # For your convenience: ints for each size
         # batch_size, in_channel, input_height, input_width = x.shape
-        out_channel, in_channel, kernel_size, kernel_size= weight.shape
+        out_channel, in_channel, kernel_size, kernel_size = weight.shape
 
         n, c, h, w = x.shape
         out_h, out_w = get_conv2d_output_size(h, w, kernel_size, stride, padding)
 
-        cols = to_cols(x.data, weight.data, stride,out_h, out_w)
-
+        cols = window(x.data, weight.data, stride, out_h, out_w)
         out = np.einsum('bihwkl,oikl->bohw', cols, weight.data)
 
         out += bias.data[None, :, None, None]
         ctx.save_for_backward(x, weight)
-        ctx.stride = stride
         ctx.cache = (stride, cols)
-        return to_tensor(out, True, False)
+        return tensorize(out, True, False)
 
  
     @staticmethod
     def backward(ctx, grad_output):
-        # weight, stride, input, input_reshaped = ctx.saved_tensors
-
         x, weight = ctx.saved_tensors
         stride, input_reshaped = ctx.cache
 
         batch_size, in_channel, im_height, im_width = x.shape
         num_filters, _, kernel_height, kernel_width = weight.shape
         _, _, output_height, output_width = grad_output.shape
-        
+
         grad_w = np.einsum('ikYX, ijYXyx -> kjyx', grad_output.data, input_reshaped) 
         # grad_w = np.tensordot(grad_output.data, input_reshaped, axes=[(0,2,3),(0,2,3)])
-
         grad_x = np.zeros((batch_size, in_channel, im_height, im_width), dtype=grad_output.data.dtype)
 
         for k in range(output_height * output_width):
@@ -576,12 +569,12 @@ class Conv2d(Function):
         grad_x = grad_x.reshape((batch_size, in_channel, im_height, im_width))
 
         grad_b = np.sum(grad_output.data, axis= (0, 2, 3)) 
-        dx, dw, db = map(to_tensor, [grad_x, grad_w, grad_b])
+        dx, dw, db = map(tensorize, [grad_x, grad_w, grad_b])
 
         return dx, dw, db 
 
 
-def to_cols(x, w, stride,output_height, output_width):
+def window(x, w, stride,output_height, output_width):
         num_filters, _, kernel_height, kernel_width = w.shape
         batch_size, in_channel, im_height, im_width = x.shape
         strides = (im_height * im_width, im_width, 1, in_channel * im_height * im_height, stride * im_width, stride)
@@ -597,7 +590,7 @@ def to_cols(x, w, stride,output_height, output_width):
         return cols
 
 
-def to_tensor(x, grad = False, leaf = False, param = False):
+def tensorize(x, grad = False, leaf = False, param = False):
     return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param)
     
 
@@ -609,15 +602,6 @@ def get_conv2d_output_size(input_height, input_width, kernel_size, stride, paddi
 def get_conv1d_output_size(input_size, kernel_size, stride):
     """Gets the size of a Conv1d output.
 
-    Notes:
-        - This formula should NOT add to the comp graph.
-        - Yes, Conv2d would use a different formula,
-        - But no, you don't need to account for Conv2d here.
-        
-        - If you want, you can modify and use this function in HW2P2.
-            - You could add in Conv1d/Conv2d handling, account for padding, dilation, etc.
-            - In that case refer to the torch docs for the full formulas.
-
     Args:
         input_size (int): Size of the input to the layer
         kernel_size (int): Size of the kernel
@@ -626,8 +610,7 @@ def get_conv1d_output_size(input_size, kernel_size, stride):
     Returns:
         int: size of the output as an int (not a Tensor or np.array)
     """
-    # TODO: implement the formula in the writeup. One-liner; don't overthink
-    return int(((input_size - kernel_size) / stride) + 1)
+    return ((input_size - kernel_size) / stride) + 1
 
 class MaxPool2d(Function):
     @staticmethod

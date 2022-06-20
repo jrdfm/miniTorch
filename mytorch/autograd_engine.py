@@ -51,27 +51,22 @@ class Function:
         # Run subclass's forward with context manager and operation input args
         output_tensor = cls.forward(backward_function.ctx, *args)
         # For each parent tensor in args, add their node to `backward_function.next_functions`
-        isConstant = 0
+        
         for parent in args:
             if type(parent) == tensor.Tensor:
                 if parent.is_leaf and parent.requires_grad:
                     # accumulate the gradient so we initialize accumulate grad
-                    parent.gard_fn = parent.acc()
-                    next_function = parent.gard_fn
+                    next_function = parent.acc()
                     # then check if this is a backward function node
                 elif not parent.is_leaf and parent.requires_grad:
                     # backward function
                     next_function = parent.grad_fn
                     # constant node
                 else:
-                    isConstant = 1
                     next_function = None
                 backward_function.next_functions.append(next_function)
             # Store current node in output tensor 
-        # output_tensor.grad_fn = backward_function
-        if(isConstant==0):
-            output_tensor.grad_fn = backward_function
-            output_tensor.requires_grad = True
+        output_tensor.grad_fn = backward_function
 
         return output_tensor
 
