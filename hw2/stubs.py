@@ -73,6 +73,7 @@ class Conv1d(Function):
         raise NotImplementedError("Implement functional.Conv1d.backward()!")
 
 
+
 class Sigmoid(Function):
     @staticmethod
     def forward(ctx, a):

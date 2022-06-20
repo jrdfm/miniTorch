@@ -51,6 +51,11 @@ class Tensor:
         (2,)
         """
         return self.data.shape
+    @property
+    def strides(self):
+        """Returns Tuple of bytes to step in each dimension when traversing an array
+        """
+        return self.data.strides
 
     def fill_(self, fill_value):
         """In-place operation, replaces data with repeated value"""

@@ -47,6 +47,51 @@ class Conv1d(Module):
         """
         return F.Conv1d.apply(x, self.weight, self.bias, self.stride)
 
+class Conv2d(Module):
+    """2-dimensional convolutional layer.
+    Args:
+        in_channel (int): # channels in input (example: # color channels in image)
+        out_channel (int): # channels produced by layer
+        kernel_size (int): edge length of the kernel (i.e. 3x3 kernel <-> kernel_size = 3)
+        stride (int): Stride of the convolution (filter)
+    """
+    def __init__(self, in_channel, out_channel, kernel_size, stride = 1, padding = 0):
+        super().__init__()
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.kernel_size = kernel_size
+        self.stride = stride
+
+        self.padding = padding
+
+        # Initializing weights and bias (not a very good initialization strategy)
+        # Kaiming init (fan-in) (good init strategy)
+        # bound = np.sqrt(1 / (in_channel * kernel_size * kernel_size))
+        # weight = np.random.uniform(-bound, bound, size=(out_channel, in_channel,
+        # kernel_size, kernel_size))
+        
+        # self.weight = Tensor(weight, requires_grad=True, is_parameter=True)
+        # bias = np.random.uniform(-bound, bound, size=(out_channel,))
+        # self.bias = Tensor(bias, requires_grad=True, is_parameter=True)
+
+
+        self.weight = Tensor(1e-3 * np.random.randn(out_channel, in_channel, kernel_size, kernel_size), requires_grad=True, is_parameter=True)
+        self.bias = Tensor(np.zeros(out_channel), requires_grad=True, is_parameter=True)
+
+    def __call__(self, x):
+        return self.forward(x)
+
+    def forward (self, x):
+        """
+        Args:
+            x (Tensor): (batch_size, in_channel, input_size)
+        Returns:
+            Tensor: (batch_size, out_channel, output_size)
+        """
+        return F.Conv2d.apply(x, self.weight, self.bias, self.stride,self.padding)     
+
+
+        
 
 class Flatten(Module):
     """Layer that flattens all dimensions for each observation in a batch

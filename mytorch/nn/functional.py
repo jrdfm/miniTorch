@@ -1,3 +1,4 @@
+from matplotlib.pyplot import axes
 import numpy as np
 from mytorch import tensor
 from mytorch.autograd_engine import Function
@@ -514,6 +515,97 @@ class Conv1d(Function):
         # TODO: Finish Conv1d backward pass. It's surprisingly similar to the forward pass.
         raise NotImplementedError("Implement functional.Conv1d.backward()!")
 
+    
+class Conv2d(Function):
+    @staticmethod
+    def forward(ctx, x, weight, bias, stride, padding):
+        """The forward/backward of a Conv2d Layer in the comp graph.
+        
+        
+        Args:
+            x (Tensor): (batch_size, in_channel, input_size) input data
+            weight (Tensor): (out_channel, in_channel, kernel_size)
+            bias (Tensor): (out_channel,)
+            stride (int): Stride of the convolution
+        
+        Returns:
+            Tensor: (batch_size, out_channel, output_size) output data
+        """
+        # For your convenience: ints for each size
+        # batch_size, in_channel, input_height, input_width = x.shape
+        out_channel, in_channel, kernel_size, kernel_size= weight.shape
+
+        n, c, h, w = x.shape
+        out_h, out_w = get_conv2d_output_size(h, w, kernel_size, stride, padding)
+
+        cols = to_cols(x.data, weight.data, stride,out_h, out_w)
+
+        out = np.einsum('bihwkl,oikl->bohw', cols, weight.data)
+
+        out += bias.data[None, :, None, None]
+        ctx.save_for_backward(x, weight)
+        ctx.stride = stride
+        ctx.cache = (stride, cols)
+        return to_tensor(out, True, False)
+
+ 
+    @staticmethod
+    def backward(ctx, grad_output):
+        # weight, stride, input, input_reshaped = ctx.saved_tensors
+
+        x, weight = ctx.saved_tensors
+        stride, input_reshaped = ctx.cache
+
+        batch_size, in_channel, im_height, im_width = x.shape
+        num_filters, _, kernel_height, kernel_width = weight.shape
+        _, _, output_height, output_width = grad_output.shape
+        
+        grad_w = np.einsum('ikYX, ijYXyx -> kjyx', grad_output.data, input_reshaped) 
+        # grad_w = np.tensordot(grad_output.data, input_reshaped, axes=[(0,2,3),(0,2,3)])
+
+        grad_x = np.zeros((batch_size, in_channel, im_height, im_width), dtype=grad_output.data.dtype)
+
+        for k in range(output_height * output_width):
+            X, Y = k % output_width, k // output_width
+            iX, iY = X * stride, Y * stride
+
+            grad_x[:,:, iY:iY+kernel_height, iX:iX+kernel_width] += np.einsum('ik,kjyx->ijyx', grad_output.data[:,:,Y,X], weight.data) 
+            # SLOWER than using tensordot
+            # grad_x[:,:, iY:iY+kernel_height, iX:iX+kernel_width] += np.tensordot(grad_output.data[:,:,Y,X], weight.data, axes=[(1), (0)])
+
+        grad_x = grad_x.reshape((batch_size, in_channel, im_height, im_width))
+
+        grad_b = np.sum(grad_output.data, axis= (0, 2, 3)) 
+        dx, dw, db = map(to_tensor, [grad_x, grad_w, grad_b])
+
+        return dx, dw, db 
+
+
+def to_cols(x, w, stride,output_height, output_width):
+        num_filters, _, kernel_height, kernel_width = w.shape
+        batch_size, in_channel, im_height, im_width = x.shape
+        strides = (im_height * im_width, im_width, 1, in_channel * im_height * im_height, stride * im_width, stride)
+        strides = x.itemsize * np.array(strides)
+
+        cols = np.lib.stride_tricks.as_strided(
+            x=x,
+            shape=(in_channel, kernel_height, kernel_width, batch_size, output_height, output_width),
+            strides=strides,
+            writeable=False
+        )
+        cols = cols.transpose(3, 0, 4, 5, 1, 2)
+        return cols
+
+
+def to_tensor(x, grad = False, leaf = False, param = False):
+    return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param)
+    
+
+def get_conv2d_output_size(input_height, input_width, kernel_size, stride, padding):
+    out_h = (input_height - kernel_size + 2 * padding) // stride + 1
+    out_w = (input_width - kernel_size + 2 * padding) // stride + 1
+    return out_h, out_w
+
 def get_conv1d_output_size(input_size, kernel_size, stride):
     """Gets the size of a Conv1d output.
 
@@ -537,3 +629,64 @@ def get_conv1d_output_size(input_size, kernel_size, stride):
     # TODO: implement the formula in the writeup. One-liner; don't overthink
     return int(((input_size - kernel_size) / stride) + 1)
 
+class MaxPool2d(Function):
+    @staticmethod
+    def forward(ctx, x, kernel_size, stride=None):
+        """
+        Args:
+            x (Tensor): (batch_size, in_channel, input_height, input_width)
+            kernel_size (int): the size of the window to take a max over
+            stride (int): the stride of the window. Default value is kernel_size.
+        Returns:
+            y (Tensor): (batch_size, out_channel, output_height, output_width)
+        """
+        raise Exception("TODO: Finish MaxPool2d(Function).forward() for hw2 bonus")
+
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        Args:
+            ctx (autograd_engine.ContextManager): for receiving objects you saved in this Function's forward
+            grad_output (Tensor): (batch_size, out_channel, output_height, output_width)
+                                  grad. of loss w.r.t. output of this function
+
+        Returns:
+            dx, None, None (tuple(Tensor, None, None)): Gradients of loss w.r.t. input
+                                                        `None`s are to match forward's num input args
+                                                        (This is just a suggestion; may depend on how
+                                                         you've written `autograd_engine.py`)
+        """
+        raise Exception("TODO: Finish MaxPool2d(Function).backward() for hw2 bonus")
+
+
+
+class AvgPool2d(Function):
+    @staticmethod
+    def forward(ctx, x, kernel_size, stride=None):
+        """
+        Args:
+            x (Tensor): (batch_size, in_channel, input_height, input_width)
+            kernel_size (int): the size of the window to take a mean over
+            stride (int): the stride of the window. Default value is kernel_size.
+        Returns:
+            y (Tensor): (batch_size, out_channel, output_height, output_width)
+        """
+        raise Exception("TODO: Finish AvgPool2d(Function).forward() for hw2 bonus")
+
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        Args:
+            ctx (autograd_engine.ContextManager): for receiving objects you saved in this Function's forward
+            grad_output (Tensor): (batch_size, out_channel, output_height, output_width)
+                                  grad. of loss w.r.t. output of this function
+
+        Returns:
+            dx, None, None (tuple(Tensor, None, None)): Gradients of loss w.r.t. input
+                                                        `None`s are to match forward's num input args
+                                                        (This is just a suggestion; may depend on how
+                                                         you've written `autograd_engine.py`)
+        """
+        raise Exception("TODO: Finish AvgPool2d(Function).backward() for hw2 bonus")

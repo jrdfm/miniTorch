@@ -91,6 +91,7 @@ def test_step(mytorch_model, mytorch_optimizer, steps,
 
     Returns whether the test succeeded.
     """
+    # print(f'mytorch_optimizer {mytorch_optimizer}\n')
     if pytorch_model is None:
         pytorch_model = get_same_pytorch_mlp(mytorch_model)
     pytorch_optimizer = get_same_pytorch_optimizer(mytorch_optimizer, pytorch_model)
@@ -252,6 +253,8 @@ def backward_(mytorch_x, mytorch_y, mytorch_model, pytorch_x, pytorch_y, pytorch
     mytorch_y.backward()
     pytorch_y.sum().backward()
 
+    # print(f' pytorch_x.grad.detach().numpy() { pytorch_x.grad.detach().numpy().shape}')
+
     # check that model is still correctly configured
     check_model_param_settings(mytorch_model)
 
@@ -265,7 +268,7 @@ def check_gradients(mytorch_x, pytorch_x, mytorch_model, pytorch_model):
     Checked gradients are the gradients of linear weights and biases, and the
     gradient of the input.
     """
-
+    # print(f'mytorch_x.grad  {type(mytorch_x.grad)}')
     if not assertions_all(mytorch_x.grad.data, pytorch_x.grad.detach().numpy(), 'dx'):
         return False
     mytorch_linear_layers = get_mytorch_conv_layers(mytorch_model)
