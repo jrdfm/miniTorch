@@ -14,11 +14,7 @@ from torch.autograd import Variable
 
 from helpers import *
 from mytorch.nn.activations import *
-from mytorch.nn.batchnorm import BatchNorm1d
-from mytorch.nn.dropout import Dropout
-from mytorch.nn.linear import Linear
-from mytorch.nn.loss import *
-from mytorch.nn.sequential import Sequential
+from mytorch.nn.module import Linear,Sequential,CrossEntropyLoss,Dropout,BatchNorm1d
 from mytorch.optim.adam import Adam
 from mytorch.tensor import Tensor
 

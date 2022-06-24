@@ -8,11 +8,8 @@ sys.path.append('autograder')
 from helpers import *
 
 sys.path.append('./')
-from mytorch.nn.conv import *
 from mytorch.optim.sgd import SGD
-from mytorch.nn.sequential import Sequential
-from mytorch.nn.linear import Linear
-from mytorch.nn.loss import *
+from mytorch.nn.module import Sequential, Linear, Conv1d, Conv2d
 from mytorch.nn.activations import *
 from mytorch.tensor import Tensor
 

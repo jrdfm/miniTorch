@@ -1,14 +1,12 @@
 """Problem 3 - Training on MNIST"""
 import numpy as np
-from torch import seed
+
 
 from mytorch.optim.sgd import SGD
 from mytorch.optim.adam import Adam
 from mytorch.nn.activations import ReLU
-from mytorch.nn.loss import CrossEntropyLoss
-from mytorch.nn.linear import Linear
-from mytorch.nn.batchnorm import BatchNorm1d
-from mytorch.nn.sequential import Sequential
+from mytorch.nn.module import Linear, Sequential, BatchNorm1d, CrossEntropyLoss
+
 from mytorch.tensor import Tensor
 from tqdm import trange, tqdm
 

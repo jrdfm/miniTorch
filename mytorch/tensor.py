@@ -7,7 +7,7 @@ from mytorch.nn import functional as F
 
 class Tensor:
     """Tensor object, similar to `torch.Tensor`
-    A wrapper around a NumPy array that help it interact with MyTorch.
+    A wrapper around a np array that help it interact with MyTorch.
 
     Args:
         data (np.array): the actual data of the tensor
@@ -40,6 +40,40 @@ class Tensor:
 
     def __repr__(self):
         return self.__str__()
+
+    
+    def __getitem__(self, args):
+        if args is None: 
+            args = []
+        elif type(args) in [list, tuple]: 
+            pass
+        else: 
+            args = [args]
+
+        indices = []
+
+        for i, arg in enumerate(args):
+            start, stop = arg.start, arg.stop
+
+            if start is None:
+                start = 0
+            elif not np.issubdtype(type(start), int):
+                raise TypeError(f"Indices must be integer. Got {type(start)}")
+            
+            if stop is None:
+                stop = self.shape[i]
+            elif not np.issubdtype(type(stop), int):
+                raise TypeError(f"Indices must be integer. Got {type(stop)}")
+            elif stop < 0:
+                stop = self.shape[i] + stop
+
+            assert arg.step is None or arg.step == 1, "Custom step not yet implemented"
+            indices.append((start, stop))
+        
+        indices += [(0, self.shape[i]) for i in range(len(args), len(self.shape))]
+        
+        return F.Slice.apply(self, indices)
+
 
     # ------------------------------------------
     # Tensor Operations (NOT part of comp graph)
@@ -157,6 +191,7 @@ class Tensor:
         return F.Sub.apply(self,other)
     
     def __mul__(self, other):
+    
         return F.Mul.apply(self,other)
 
     def __truediv__(self, other):
@@ -179,5 +214,85 @@ class Tensor:
 
     def sum(self, axis=None, keepdims=False):
         return F.Sum.apply(self, axis, keepdims)
+    
+    def max(self, axis=None):
+        return F.Max.apply(self, axis)
+    
+    def min(self, axis=None):
+        return F.Min.apply(self, axis)
+    def mean(self, axis=None, keepdims:bool=False):
+        out = self.sum(axis=axis)
+        coeff = np.prod(out.shape) / np.prod(self.shape)
+        return out * Tensor(coeff)
+        
+    def reshape(self, shape:tuple):
+        return F.Reshape.apply(self, shape)
 
-    # TODO: Implement more functions below
+    
+    # ****************************************
+    # ********* Conv/Pool operations *********
+    # ****************************************
+
+
+    
+    def max_pool2d(self, kernel_size, stride = None):
+        """MaxPooling2d operation
+        
+            Args:
+                kernel_size (tuple): Kernel length for pooling operation
+        """
+        return F.MaxPool2d.apply(self, kernel_size, stride)
+    
+    def avg_pool2d(self, kernel_size:tuple=(2, 2), stride = None):
+        """AvgPooling2d operation
+        
+            Args:
+                kernel_size (tuple): Kernel length for pooling operation
+        """
+        return F.AvgPool2d.apply(self, kernel_size, stride)
+
+    def pad1d(self, pad:tuple):
+        """Padding for one-dimensional signal
+
+        Args:
+            pad (tuple): Amount of padding before and after the signal
+
+        Returns:
+            Tensor: Padded signal
+        """
+        return self[:, :, -pad[0]:int(self.shape[2])+pad[1]]
+
+    def pad2d(self, pad:tuple):
+        """Padding for two-dimensional images
+
+        Args:
+            pad (tuple): 4-dimensional tuple. Amount of padding to be applied before and
+                         after the signal along 2 dimensions
+
+        Returns:
+            Tensor: Padded signal
+        """
+        return self[:, :, -pad[2]:int(self.shape[2])+pad[3], -pad[0]:int(self.shape[3])+pad[1]]
+
+    def conv1d(self, weight, stride:int):
+        """1d convolution
+        
+        Args:
+            weight (Tensor): Filter weight (out_channel, in_channel, kernel_length)
+            stride (int): Stride of the convolution operation
+        """
+        return F.Conv1d.apply(self, weight, stride)
+    
+    def conv2d(self, weight, stride):
+        """2d convolution
+        
+        Args:
+            weight (Tensor): Filter weight (out_channel, in_channel, *kernel_size)
+            stride (int): Stride of the convolution operation
+        """
+        return F.Conv2d.apply(self, weight, stride)
+
+
+
+
+
