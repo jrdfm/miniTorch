@@ -170,8 +170,8 @@ class Sum(Function):
             raise Exception("Only Sum of tensor is supported")
         ctx.axis = axis
         ctx.shape = a.shape
-        if axis is not None:
-            ctx.len = a.shape[axis]
+        # if axis is not None:
+        #     # ctx.len = a.shape[axis]
         ctx.keepdims = keepdims
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
@@ -193,7 +193,7 @@ class Sum(Function):
         # Take note that gradient tensors SHOULD NEVER have requires_grad = True.
         return tensorize(grad), None, None
 
-
+#
 
 class Div(Function):
     @staticmethod
@@ -237,7 +237,7 @@ class Pow(Function):
     def forward(ctx, a, b):
         # Check that both args are tensors
         if not (type(a).__name__ == 'Tensor'):
-            raise Exception("Both args must be Tensors: {}, {}".format(type(a).__name__, type(b).__name__))
+            raise Exception("a must be Tensors: {}".format(type(a).__name__))
         if (type(b).__name__ == 'int' or type(b).__name__ == 'float'):
             b = tensor.Tensor(np.array(b))
         # Check that args have same shape
@@ -359,8 +359,8 @@ class Sqrt(Function):
             raise Exception("Arg for Sqrt must be tensor: {}".format(type(a).__name__))
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
-        c = tensor.Tensor(np.sqrt(a.data,requires_grad = requires_grad,
-                    is_leaf = not requires_grad))
+        c = tensor.Tensor(np.sqrt(a.data),requires_grad = requires_grad,
+                    is_leaf = not requires_grad)
         return c
             
     @staticmethod

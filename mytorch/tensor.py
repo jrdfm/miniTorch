@@ -220,6 +220,8 @@ class Tensor:
     
     def min(self, axis=None):
         return F.Min.apply(self, axis)
+
+        
     def mean(self, axis=None, keepdims:bool=False):
         out = self.sum(axis=axis)
         coeff = np.prod(out.shape) / np.prod(self.shape)
