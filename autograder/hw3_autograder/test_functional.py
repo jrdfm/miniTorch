@@ -64,7 +64,11 @@ def test_concat_backward():
         
         l.backward()
         l_torch.backward()
-
+        s = [i.shape for i in a_torch if i is not None]
+        ss = [i.grad.data for i in a if i.grad is not None]
+        # print(f'a_torch[0].grad.data.numpy() {a_torch[0].grad.data.numpy()}')
+        # print(f'shape a_torch_i grad {a_torch[0].grad.data.numpy().shape} a_torch shapes {s} c_torch {c_torch.shape} a_torch {len(a_torch)}')
+        # print(f'my grads {ss}')
         for a_i, a_torch_i in zip(a,a_torch):
             assert check_grad(a_i, a_torch_i, eps = eps)
 

@@ -1,3 +1,4 @@
+from turtle import shape
 import numpy as np
 import functools as f
 from mytorch import tensor
@@ -435,32 +436,20 @@ class Cat(Function):
         NOTE: seq (list of tensors) contains the tensors that we wish to concatenate while dim (int) is the dimension along which we want to concatenate 
         '''
         seq, dim = args
-        ctx.list = seq
-        ctx.dim = dim
         grad = [t.requires_grad for t in seq if t is not None]
         requires_grad = f.reduce(lambda x, y: x or y, grad) # requires_grad True if any 
-        seq = [t.data for t in seq if t is not None]
-        output = tensorize(np.concatenate(seq,dim), requires_grad, not requires_grad)
+        arr = [t.data for t in seq if t is not None]
+        output = tensorize(np.concatenate(arr,dim), requires_grad, not requires_grad)
+        shapes = [i.shape for i in seq if i is not None] # shapes for backward
+        ctx.cache = dim, shapes
         return output
 
     @staticmethod
     def backward(ctx,grad_output):
-        seq = ctx.list
-        dim = ctx.dim
-
-        sizes = []
-        for i in seq:
-            sizes.append(i.shape[dim])
-        for idx,i in enumerate(sizes):
-            if idx>0:
-                sizes[idx] = sizes[idx] + sizes[idx-1]
-
+        dim, shapes = ctx.cache 
+        sizes = np.cumsum([i[dim] for i in shapes])
         grad_output = np.split(grad_output.data,sizes,dim)        
-        output = ()
-        for i in grad_output:
-            output += (tensor.Tensor(i),)
-        
-        return output
+        return grad_output
 
 class Slice(Function):
     @staticmethod
