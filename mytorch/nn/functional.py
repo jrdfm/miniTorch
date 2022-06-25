@@ -1,4 +1,5 @@
 import numpy as np
+import functools as f
 from mytorch import tensor
 from mytorch.autograd_engine import Function
 
@@ -323,6 +324,7 @@ class ReLU(Function):
         grad_a = tensor.Tensor(np.where(a.data > 0, 1, 0)* grad_output.data)
         
         return grad_a
+
 class Sigmoid(Function):
     @staticmethod
     def forward(ctx, a):
@@ -406,39 +408,6 @@ class Min(Function):
         return tensorize(grad)
 
         
-class Slice(Function):
-    @staticmethod
-    def forward(ctx, a, indices=None):
-        ctx.shape, ctx.indices = a.shape, indices
-        requires_grad, is_leaf  = a.requires_grad, not a.requires_grad
-        out_data = inner_slice(a.data, indices)
-        out = tensorize(out_data, requires_grad, is_leaf)
-        out.children = [a]
-        out.op = 'slice'
-        return out
-    
-    @staticmethod
-    def backward(ctx, grad_output):
-        shape, fwd_indices = ctx.shape, ctx.indices
-        indices = [(0 - p[0], grad_output.shape[i] + (shape[i] - p[1])) for i, p in enumerate(fwd_indices)]
-        grad = inner_slice(grad_output, indices)
-        return tensorize(grad), None
-
-def inner_slice(a, indices):
-    """
-        Helper function to slice a Tensor
-
-        Args:
-            a (np.ndarray): array to slice
-            indices (list): list of indices 
-        
-        ..note: Length must xch the number of dimensions of x
-    """
-    padding = [(max(0, -p[0]), max(0, p[1]-a.shape[i])) for i, p in enumerate(indices)]
-    a = np.pad(a, padding, mode="constant")
-    slices = [(p[0]+padding[i][0], p[1]+padding[i][0]) for i, p in enumerate(indices)]
-    return a[tuple([slice(x[0], x[1], None) for x in slices])]
-
 
 def max_min_forward(a, axis, fun):
 
@@ -448,7 +417,6 @@ def max_min_forward(a, axis, fun):
         out = np.amin(a, axis=None if axis is None else tuple(axis), keepdims=True)
     if axis is not None:
         out = out.reshape([a.shape[i] for i in range(len(a.shape)) if i not in axis])
-
     return out
 
 def max_min_backward(grad_output, inp, out, axis):
@@ -457,6 +425,62 @@ def max_min_backward(grad_output, inp, out, axis):
     div = mask.sum(axis=None if axis is None else tuple(axis), keepdims=True) 
     return mask * (grad_output.reshape(shape)).data / div
            
+class Cat(Function):
+    @staticmethod
+    def forward(ctx,*args):
+        '''
+        Args:
+            args (list): [*seq, dim] 
+        
+        NOTE: seq (list of tensors) contains the tensors that we wish to concatenate while dim (int) is the dimension along which we want to concatenate 
+        '''
+        seq, dim = args
+        ctx.list = seq
+        ctx.dim = dim
+        grad = [t.requires_grad for t in seq if t is not None]
+        requires_grad = f.reduce(lambda x, y: x or y, grad) # requires_grad True if any 
+        seq = [t.data for t in seq if t is not None]
+        output = tensorize(np.concatenate(seq,dim), requires_grad, not requires_grad)
+        return output
+
+    @staticmethod
+    def backward(ctx,grad_output):
+        seq = ctx.list
+        dim = ctx.dim
+
+        sizes = []
+        for i in seq:
+            sizes.append(i.shape[dim])
+        for idx,i in enumerate(sizes):
+            if idx>0:
+                sizes[idx] = sizes[idx] + sizes[idx-1]
+
+        grad_output = np.split(grad_output.data,sizes,dim)        
+        output = ()
+        for i in grad_output:
+            output += (tensor.Tensor(i),)
+        
+        return output
+
+class Slice(Function):
+    @staticmethod
+    def forward(ctx,x,indices):
+        '''
+        Args:
+            x (tensor): Tensor object that we need to slice
+            indices (int,list,Slice): This is the key passed to the __getitem__ function of the Tensor object when it is sliced using [ ] notation.
+        '''
+        ctx.save_for_backward(x)
+        ctx.indices = indices
+        grad = x.requires_grad
+        return tensorize(x.data[indices], grad, not grad)
+
+    @staticmethod
+    def backward(ctx,grad_output):
+        a, = ctx.saved_tensors
+        out = np.zeros(a.shape)
+        out[ctx.indices] = grad_output.data
+        return tensorize(out), None
 
 
 class AccumulateGrad():
@@ -561,6 +585,8 @@ def to_one_hot(arr, num_classes):
     a = np.zeros((arr.shape[0], num_classes))
     a[np.arange(len(a)), arr] = 1
     return tensor.Tensor(a, requires_grad = True)
+
+
 
 
 class Conv1d(Function):

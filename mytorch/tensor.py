@@ -4,6 +4,39 @@ import mytorch.autograd_engine as autograd_engine
 from mytorch.nn import functional as F
 
 
+def cat(seq,dim=0):
+    '''
+    Concatenates the given sequence of seq tensors in the given dimension.
+    All tensors must either have the same shape (except in the concatenating dimension) or be empty.
+    
+    NOTE: If you are not sure what this operation does, please revisit Recitation 0.
+
+    Args:
+        seq (list of Tensors) - List of interegers to concatenate
+        dim (int) - The dimension along which to concatenate
+    Returns:
+        Tensor - Concatenated tensor
+
+    Example:
+
+        seq
+        [[[3 3 4 1]
+        [0 3 1 4]],
+        [[4 2 0 0]
+        [3 0 4 0]
+        [1 4 4 3]],
+        [[3 2 3 1]]]
+        
+        tensor.cat(seq,0)
+        [[3 3 4 1]
+        [0 3 1 4]
+        [4 2 0 0]
+        [3 0 4 0]
+        [1 4 4 3]
+        [3 2 3 1]]
+    '''
+    # TODO: invoke the appropriate function from functional.py. One-liner; don't overthink
+    return F.Cat.apply(seq, dim)
 
 class Tensor:
     """Tensor object, similar to `torch.Tensor`
@@ -42,37 +75,8 @@ class Tensor:
         return self.__str__()
 
     
-    def __getitem__(self, args):
-        if args is None: 
-            args = []
-        elif type(args) in [list, tuple]: 
-            pass
-        else: 
-            args = [args]
-
-        indices = []
-
-        for i, arg in enumerate(args):
-            start, stop = arg.start, arg.stop
-
-            if start is None:
-                start = 0
-            elif not np.issubdtype(type(start), int):
-                raise TypeError(f"Indices must be integer. Got {type(start)}")
-            
-            if stop is None:
-                stop = self.shape[i]
-            elif not np.issubdtype(type(stop), int):
-                raise TypeError(f"Indices must be integer. Got {type(stop)}")
-            elif stop < 0:
-                stop = self.shape[i] + stop
-
-            assert arg.step is None or arg.step == 1, "Custom step not yet implemented"
-            indices.append((start, stop))
-        
-        indices += [(0, self.shape[i]) for i in range(len(args), len(self.shape))]
-        
-        return F.Slice.apply(self, indices)
+    def __getitem__(self, key):
+        return F.Slice.apply(self, key)
 
 
     # ------------------------------------------
@@ -201,7 +205,11 @@ class Tensor:
         return F.Pow.apply(self,other)
 
     def __matmul__(self, other):
-        return F.MatMul.apply(self, other)    
+        return F.MatMul.apply(self, other)  
+
+    def __len__(self,):
+        return len(self.data)
+  
 
     def exp(self):
         """Element-wise exp of this tensor, adding to comp graph"""
@@ -230,6 +238,39 @@ class Tensor:
     def reshape(self, shape:tuple):
         return F.Reshape.apply(self, shape)
 
+    def unsqueeze(self,dim=0):
+        """ 
+        Returns a new tensor with a dimension of size one inserted at the specified position. 
+        
+        NOTE: If you are not sure what this operation does, please revisit Recitation 0.
+        
+        Example:
+            a
+            [[1 2 3]
+            [4 5 6]]
+            
+            a.unsqueeze(0)
+            [[[1 2 3]
+            [4 5 6]]]
+            
+            a.unsqueeze(1)
+            [[[1 2 3]]
+            
+            [[4 5 6]]]
+            
+            a.unsqueeze(2)
+            [[[1]
+            [2]
+            [3]]
+            
+            [[4]
+            [5]
+            [6]]]
+        """
+        # TODO: Implement the unsqueeze operation
+        raise NotImplementedError('Use existing functions in functional.py to implement this operation!')
+
+            
     
     # ****************************************
     # ********* Conv/Pool operations *********
