@@ -80,14 +80,14 @@ def unpack_sequence(ps):
 
     seq = [[] for _ in range(len(ps.sorted_indices))]
     s = 0
-    batchs = ps.batch_sizes
-    for i in range(batchs.size):
-        batch = int(batchs[i])
-        for j in range(batch):
+    batch_sizes = ps.batch_sizes
+    for i in range(batch_sizes.size):
+        batch_size = int(batch_sizes[i])
+        for j in range(batch_size):
             seq[ps.sorted_indices[j]].append(ps.data[s].unsqueeze())
             s += 1
     seq = [tensor.cat(i) for i in seq]
-
+    
     return seq
             
 

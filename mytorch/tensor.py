@@ -105,6 +105,16 @@ class Tensor:
         Note: after copying, you may need to set params like `is_parameter` manually"""
         return Tensor(self.data)
 
+    def split(self, batches):
+        """Splits a tensor into batches and returns a list of tensors"""
+        ls = []
+        i_p = 0
+        indices = np.cumsum(batches).astype(int)
+        for i in range(len(indices)):
+            ls.append(self[i_p:indices[i]])
+            i_p = indices[i]
+        return ls
+
     # Below methods can be used WITHOUT creating a tensor first
     # (For example, we can call Tensor.zeros(3,2) directly)
 

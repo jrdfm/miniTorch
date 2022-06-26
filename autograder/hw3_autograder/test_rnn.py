@@ -89,6 +89,11 @@ def test_time_iterator_forward():
         mpack = mpack_sequence(seq_mytorch)
         tpack = nn.utils.rnn.pack_sequence(seq_torch, enforce_sorted=False)
 
+        data, sorted_indices, batch_sizes = mpack
+        # self.sorted_indices,self.batch_sizes
+        # print(f'input data \n{data} \ninput shape {data.shape} \nsorted_indices {sorted_indices} batch_sizes {batch_sizes} \n')
+        
+
         model_mytorch = RNN(input_size, hidden_size)
         model_torch = nn.RNN(input_size, hidden_size, num_layers = 1, batch_first = False ).double()
         
