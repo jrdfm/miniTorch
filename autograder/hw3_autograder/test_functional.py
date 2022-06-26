@@ -196,9 +196,17 @@ def test_pack_sequence_forward():
         # get mytorch and torch tensor: 'a'
         seq1 = [Tensor.randn(*shape) for shape in shapes]
         seq2 = [ get_same_torch_tensor(t) for t in seq1 ]
-    
-        # run mytorch and torch forward: 'c = cat (a, b)'
+        # d = [i.data for i in seq1 if i is not None]
+        # for i,d in enumerate(d):
+        #     print(f'seq[{i}] shape {d.shape} \n {d}')
+        # # run mytorch and torch forward: 'c = cat (a, b)'
         c = pack_sequence(seq1)
+        # print(f'\n shape packed {c.data.shape} \n {c.data}')
+        # print(f'\n type packed {type(c.data)} \n type packed[0] {type(c.data[0])} shape packed[0] {c.data[0].shape}')
+        # s = [i.shape for i in c.data]
+        # t = [type(i) for i in c.data]
+        # print(f'shapes {s} \n types {t}')
+        # print(f'sorted_indices {c.sorted_indices} batch_sizes {c.batch_sizes}')
         c_torch = torch.nn.utils.rnn.pack_sequence(seq2, enforce_sorted=False)
         assert check_val(c.data,c_torch.data)
         #compare_ps(c_torch, c.data, "test_pack_sequence_forward")
@@ -251,9 +259,12 @@ def test_unpack_sequence_forward():
         # run mytorch and torch forward: 'c = cat (a, b)'
         c = pack_sequence(seq1)
         seq2 = unpack_sequence(c)
+        ss = [i.shape for i in seq1]
+        s = [i.shape for i in seq2]
+        print(f'seq1 shapes {ss} seq2 shapes {s}')
         
         for s1,s2 in zip(seq1,seq2): 
-            assert assertions_all(s1.data, s2.data, 'Unpack Forward')
+            assert assertions_all(s2.data,s1.data,'Unpack Forward')
     
     return True 
 

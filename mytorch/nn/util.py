@@ -1,5 +1,7 @@
+from joblib import PrintTime
 from mytorch import tensor
 import numpy as np
+
 
 class PackedSequence:
     
@@ -43,15 +45,21 @@ def pack_sequence(sequence):
     Returns:
         PackedSequence: data attribute of the result is of shape ( total number of timesteps (sum) across all samples in the batch, # features )
     '''
-    
-    # TODO: INSTRUCTIONS
-    # Find the sorted indices based on number of time steps in each sample
-    # Extract slices from each sample and properly order them for the construction of the packed tensor. __getitem__ you defined for Tensor class will come in handy
-    # Use the tensor.cat function to create a single tensor from the re-ordered segements
-    # Finally construct the PackedSequence object
-    # REMEMBER: All operations here should be able to construct a valid autograd graph.
+    l = [i.shape[0] for i in sequence]
+    sorted_indices = np.argsort(l)[::-1]
+    seq_size = max(l)
+    p = []
+    batch_sizes = np.zeros(seq_size)
 
-    raise NotImplementedError('Implement pack_Sequence!')
+    for i in range(seq_size):
+        for j in sorted_indices:
+            ls = sequence[j]
+            if len(ls) > i:
+                e = ls[i].unsqueeze()
+                p.append(e)
+                batch_sizes[i] += 1
+    return PackedSequence(tensor.cat(p), sorted_indices, batch_sizes)
+
 
 def unpack_sequence(ps):
     '''
@@ -70,6 +78,18 @@ def unpack_sequence(ps):
     # Use the ps.batch_size to determine number of time steps in each tensor of the original list (assuming the tensors were sorted in a descending fashion based on number of timesteps)
     # Construct these individual tensors using tensor.cat
     # Re-arrange this list of tensor based on ps.sorted_indices
+    num_t = len(ps.sorted_indices)
+    seq = [[] for _ in range(num_t)]
+    s = 0
 
-    raise NotImplementedError('Implement unpack_sequence')
+    for i in range(ps.batch_sizes.size):
+        idx = int(ps.batch_sizes[i])
+        for j in range(idx):
+            seq[ps.sorted_indices[j]].append(ps.data[s])
+            s += 1
+    r , col = ps.data.shape
+    seq = [tensor.cat(i).reshape((len(i), col)) for i in seq]
+
+    return seq
+            
 

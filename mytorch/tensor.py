@@ -267,8 +267,8 @@ class Tensor:
             [5]
             [6]]]
         """
-        # TODO: Implement the unsqueeze operation
-        raise NotImplementedError('Use existing functions in functional.py to implement this operation!')
+        shape = self.shape[:dim] + (1,) + self.shape[dim:] # insert 1 into shape at dim
+        return F.Reshape.apply(self, shape)
 
             
     

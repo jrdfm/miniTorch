@@ -40,7 +40,7 @@ class Reshape(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        print(type(grad_output))
+        # print(type(grad_output))
         return tensor.Tensor(grad_output.data.reshape(ctx.shape)), None
 
 class Log(Function):
@@ -448,8 +448,9 @@ class Cat(Function):
     def backward(ctx,grad_output):
         dim, shapes = ctx.cache 
         sizes = np.cumsum([i[dim] for i in shapes])
-        grad_output = np.split(grad_output.data,sizes,dim)        
-        return grad_output
+        grads = np.array_split(grad_output.data,sizes,dim)
+        grads = [tensorize(i) for i in grads]   
+        return grads
 
 class Slice(Function):
     @staticmethod
