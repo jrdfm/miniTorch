@@ -1,4 +1,3 @@
-from joblib import PrintTime
 from mytorch import tensor
 import numpy as np
 
@@ -78,17 +77,16 @@ def unpack_sequence(ps):
     # Use the ps.batch_size to determine number of time steps in each tensor of the original list (assuming the tensors were sorted in a descending fashion based on number of timesteps)
     # Construct these individual tensors using tensor.cat
     # Re-arrange this list of tensor based on ps.sorted_indices
-    num_t = len(ps.sorted_indices)
-    seq = [[] for _ in range(num_t)]
-    s = 0
 
-    for i in range(ps.batch_sizes.size):
-        idx = int(ps.batch_sizes[i])
-        for j in range(idx):
-            seq[ps.sorted_indices[j]].append(ps.data[s])
+    seq = [[] for _ in range(len(ps.sorted_indices))]
+    s = 0
+    batchs = ps.batch_sizes
+    for i in range(batchs.size):
+        batch = int(batchs[i])
+        for j in range(batch):
+            seq[ps.sorted_indices[j]].append(ps.data[s].unsqueeze())
             s += 1
-    r , col = ps.data.shape
-    seq = [tensor.cat(i).reshape((len(i), col)) for i in seq]
+    seq = [tensor.cat(i) for i in seq]
 
     return seq
             

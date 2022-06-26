@@ -261,7 +261,7 @@ def test_unpack_sequence_forward():
         seq2 = unpack_sequence(c)
         ss = [i.shape for i in seq1]
         s = [i.shape for i in seq2]
-        print(f'seq1 shapes {ss} seq2 shapes {s}')
+        print(f'seq1 shapes {ss} \nseq2 shapes {s}')
         
         for s1,s2 in zip(seq1,seq2): 
             assert assertions_all(s2.data,s1.data,'Unpack Forward')
