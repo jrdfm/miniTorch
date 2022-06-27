@@ -56,7 +56,7 @@ class RNNUnit(Module):
         if hidden is None:
             hidden = Tensor(np.zeros((effective_batch_size, self.hidden_size)))
 
-        output = input@(self.weight_ih.T()) + self.bias_ih + hidden @ (self.weight_hh.T()) + self.bias_hh
+        output = input @ (self.weight_ih.T()) + self.bias_ih + hidden @ (self.weight_hh.T()) + self.bias_hh
         return Tanh().forward(output)
 
 
@@ -98,43 +98,20 @@ class TimeIterator(Module):
         
         # Resolve the PackedSequence into its components
         data, sorted_indices, batch_sizes = input
-        # self.sorted_indices,self.batch_sizes
-        # print(f'input data {data} \ninput shape {data.shape} sorted_indices {sorted_indices} batch_sizes {batch_sizes} ')
-        
-        # TODO: INSTRUCTIONS
-        # Iterate over appropriate segments of the "data" tensor to pass same timesteps across all samples in the batch simultaneously to the unit for processing.
-        # Remeber to account for scenarios when effective_batch_size changes between one iteration to the next
-        # print(f'input data \n{data} \ninput shape {data.shape} \nsorted_indices {sorted_indices} batch_sizes {batch_sizes}')
         time_steps = data.split(batch_sizes)
-        # [print(f'len timesteps {len(time_steps)} \ntime_steps[{i}] type {type(time_steps[i])} \n{time_steps[i]}\n') for i in range(len(time_steps))]
-        # prev_hidden = cur_hidden =  None 
         c = list(np.cumsum(batch_sizes).astype(int))
         hidden_sizes = [y - x for x,y in zip(c,c[1:])]
         out = []
-        output_hid = [[] for _ in sorted_indices]
         for i in range(len(time_steps)):
             if hidden:
                 hidden = hidden[0:hidden_sizes[i-1]]
             hidden = self.unit.forward(time_steps[i], hidden)
             out.append(hidden)
-            # if i == len(time_steps) -1:
-            #     output_hid.append(hidden)
         out = tensor.cat(out)
         input.data = out
+        hidden_last = tensor.cat([i[-1].unsqueeze() for i in unpack_sequence(input)])[sorted_indices]
 
-        # #get final hidden
-        unpack = unpack_sequence(input)
-        output_ = []
-        for t in unpack:
-            output_.append(t[-1].unsqueeze())
-
-        # print(f'output_hid len {len(output_hid)} batch_sizes {batch_sizes} sorted_indices {sorted_indices} len ASS {len([[] for _ in sorted_indices])}')
-
-        output_ = [output_[i] for i in input.sorted_indices]
-        output_ = tensor.cat(output_)
-        # print(f'output_ shape {output_.shape} output_ len {len(output_)} ')
-        
-        return input,output_
+        return input, hidden_last
 
 
 ('Implement Forward TimeIterator')
