@@ -86,6 +86,109 @@ class Module:
         if self.__dict__.get('_parameters') is None: 
             raise Exception("Parameters not initialized. Did not initialize the parent class. \
                            Call super().__init__().")
+
+class Linear(Module):
+    """A linear layer (aka 'fully-connected' or 'dense' layer)
+
+    >>> layer = Linear(2,3)
+    >>> layer(Tensor.ones(10,2)) # (batch_size, in_features)
+    <some tensor output with size (batch_size, out_features)>
+
+    Args:
+        in_features (int): # dims in input
+                           (i.e. # of inputs to each neuron)
+        out_features (int): # dims of output
+                           (i.e. # of neurons)
+
+    Inherits from:
+        Module (mytorch.nn.module.Module)
+    """
+
+    def __init__(self, in_features, out_features):
+        super().__init__()
+
+        self.in_features = in_features
+        self.out_features = out_features
+
+        # Randomly initializing layer weights
+        k = 1 / in_features
+        weight = k * (np.random.rand(out_features, in_features) - 0.5)
+        bias = k * (np.random.rand(out_features) - 0.5)
+        self.weight = Tensor(weight, requires_grad=True, is_parameter=True)
+        self.bias = Tensor(bias, requires_grad=True, is_parameter=True)
+
+    def __call__(self, x):
+        return self.forward(x)
+
+    def forward(self, x):
+        """
+        Args:
+            x (Tensor): (batch_size, in_features)
+        Returns:
+            Tensor: (batch_size, out_features)
+        """
+        # check that the input is a tensor
+                # if not type(x).__name__ == 'Tensor':
+                # raise Exception("Only dropout for tensors is supported")
+        if not (type(x).__name__ == 'Tensor' or type(self.weight).__name__ == 'Tensor'):
+            raise Exception(f"X must be Tensor. Got {type(x)}")
+        output = x @ self.weight.T() + self.bias
+        return output
+
+
+class Sequential(Module):
+    """Passes input data through stored layers, in order
+
+    >>> model = Sequential(Linear(2,3), ReLU())
+    >>> model(x)
+    <output after linear then relu>
+
+    Inherits from:
+        Module (nn.module.Module)
+    """
+
+    def __init__(self, *layers):
+        super().__init__()
+        self.layers = layers
+
+        # iterate through args provided and store them
+        for idx, l in enumerate(self.layers):
+            self.add_module(str(idx), l)
+
+    def __iter__(self):
+        """Enables list-like iteration through layers"""
+        yield from self.layers
+
+    def __getitem__(self, idx):
+        """Enables list-like indexing for layers"""
+        return self.layers[idx]
+
+    def train(self):
+        """Sets this object and all trainable modules within to train mode"""
+        self.is_train = True
+        for submodule in self._submodules.values():
+            submodule.train()
+
+    def eval(self):
+        """Sets this object and all trainable modules within to eval mode"""
+        self.is_train = False
+        for submodule in self._submodules.values():
+            submodule.eval()
+
+    def forward(self, x):
+        """Passes input data through each layer in order
+        Args:
+            x (Tensor): Input data
+        Returns:
+            Tensor: Output after passing through layers
+        """
+        for layer in self.layers:
+            x = layer.forward(x)
+        return x
+
+
+
+
 class BatchNorm1d(Module):
     """Batch Normalization Layer
 
@@ -448,106 +551,6 @@ class AvgPool2d(Module):
         out = x.avg_pool2d(self.kernel_size, self.stride)
         out.name = 'avgpool2d_res'
         return out
-
-class Linear(Module):
-    """A linear layer (aka 'fully-connected' or 'dense' layer)
-
-    >>> layer = Linear(2,3)
-    >>> layer(Tensor.ones(10,2)) # (batch_size, in_features)
-    <some tensor output with size (batch_size, out_features)>
-
-    Args:
-        in_features (int): # dims in input
-                           (i.e. # of inputs to each neuron)
-        out_features (int): # dims of output
-                           (i.e. # of neurons)
-
-    Inherits from:
-        Module (mytorch.nn.module.Module)
-    """
-
-    def __init__(self, in_features, out_features):
-        super().__init__()
-
-        self.in_features = in_features
-        self.out_features = out_features
-
-        # Randomly initializing layer weights
-        k = 1 / in_features
-        weight = k * (np.random.rand(out_features, in_features) - 0.5)
-        bias = k * (np.random.rand(out_features) - 0.5)
-        self.weight = Tensor(weight, requires_grad=True, is_parameter=True)
-        self.bias = Tensor(bias, requires_grad=True, is_parameter=True)
-
-    def __call__(self, x):
-        return self.forward(x)
-
-    def forward(self, x):
-        """
-        Args:
-            x (Tensor): (batch_size, in_features)
-        Returns:
-            Tensor: (batch_size, out_features)
-        """
-        # check that the input is a tensor
-                # if not type(x).__name__ == 'Tensor':
-                # raise Exception("Only dropout for tensors is supported")
-        if not (type(x).__name__ == 'Tensor' or type(self.weight).__name__ == 'Tensor'):
-            raise Exception(f"X must be Tensor. Got {type(x)}")
-        output = x @ self.weight.T() + self.bias
-        return output
-
-
-class Sequential(Module):
-    """Passes input data through stored layers, in order
-
-    >>> model = Sequential(Linear(2,3), ReLU())
-    >>> model(x)
-    <output after linear then relu>
-
-    Inherits from:
-        Module (nn.module.Module)
-    """
-
-    def __init__(self, *layers):
-        super().__init__()
-        self.layers = layers
-
-        # iterate through args provided and store them
-        for idx, l in enumerate(self.layers):
-            self.add_module(str(idx), l)
-
-    def __iter__(self):
-        """Enables list-like iteration through layers"""
-        yield from self.layers
-
-    def __getitem__(self, idx):
-        """Enables list-like indexing for layers"""
-        return self.layers[idx]
-
-    def train(self):
-        """Sets this object and all trainable modules within to train mode"""
-        self.is_train = True
-        for submodule in self._submodules.values():
-            submodule.train()
-
-    def eval(self):
-        """Sets this object and all trainable modules within to eval mode"""
-        self.is_train = False
-        for submodule in self._submodules.values():
-            submodule.eval()
-
-    def forward(self, x):
-        """Passes input data through each layer in order
-        Args:
-            x (Tensor): Input data
-        Returns:
-            Tensor: Output after passing through layers
-        """
-        for layer in self.layers:
-            x = layer.forward(x)
-        return x
-
 
 class CrossEntropyLoss(Module):
     """The XELoss function.

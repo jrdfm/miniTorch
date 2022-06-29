@@ -36,7 +36,7 @@ class CNN(Module):
             ReLU(),
             Conv1d(trd_in_channel, trd_out_channel, trd_kernel_size, sec_stride),
             Sigmoid(),
-            Flatten(),
+            Flatten()
         ]
         
         # TODO: Iterate through the conv layers and calculate the final output size

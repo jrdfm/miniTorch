@@ -19,13 +19,12 @@ class Transpose(Function):
         if not len(a.shape) == 2:
             raise Exception("Arg for Transpose must be 2D tensor: {}".format(a.shape))
         requires_grad = a.requires_grad
-        b = tensor.Tensor(a.data.T, requires_grad=requires_grad,
-                                    is_leaf=not requires_grad)
-        return b
+        is_leaf = not requires_grad
+        return tensorize(a.data.T, requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
-        return tensor.Tensor(grad_output.data.T)
+        return tensorize(grad_output.data.T)
 
 class Reshape(Function):
     @staticmethod
@@ -34,14 +33,12 @@ class Reshape(Function):
             raise Exception("Arg for Reshape must be tensor: {}".format(type(a).__name__))
         ctx.shape = a.shape
         requires_grad = a.requires_grad
-        c = tensor.Tensor(a.data.reshape(shape), requires_grad=requires_grad,
-                                                 is_leaf=not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(a.data.reshape(shape), requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
-        # print(type(grad_output))
-        return tensor.Tensor(grad_output.data.reshape(ctx.shape)), None
+        return tensorize(grad_output.data.reshape(ctx.shape)), None
 
 class Log(Function):
     @staticmethod
@@ -50,14 +47,13 @@ class Log(Function):
             raise Exception("Arg for Log must be tensor: {}".format(type(a).__name__))
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
-        c = tensor.Tensor(np.log(a.data), requires_grad=requires_grad,
-                                          is_leaf=not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(np.log(a.data), requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
-        return tensor.Tensor(grad_output.data / a.data)
+        return tensorize(grad_output.data / a.data)
 
 """EXAMPLE: This represents an Op:Add node to the comp graph.
 
@@ -73,33 +69,21 @@ class Add(Function):
         # Check that both args are tensors
         if not (type(a).__name__ == 'Tensor' and type(b).__name__ == 'Tensor'):
             raise Exception("Both args must be Tensors: {}, {}".format(type(a).__name__, type(b).__name__))
-
-        # Check that args have same shape
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a, b)
-
-        # Create addition output and sets `requires_grad and `is_leaf`
-        # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data + b.data, requires_grad=requires_grad,
-                                           is_leaf=not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(a.data + b.data, requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
         # retrieve forward inputs that we stored
         a, b = ctx.saved_tensors
-
         # calculate gradient of output w.r.t. each input
         # dL/grad_output = dout/grad_output * dL/dout
         grad_a = np.ones(a.shape) * grad_output.data
         # dL/db = dout/db * dL/dout
         grad_b = np.ones(b.shape) * grad_output.data
-
-        # the order of gradients returned should xch the order of the arguments
-        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
+        grad_a, grad_b = map(tensorize ,map(unbroadcast,[grad_a, grad_b], [a.shape, b.shape]))
         return grad_a, grad_b
 
 
@@ -111,22 +95,18 @@ class Sub(Function):
             raise Exception("Both args must be Tensors & of equal shape: {}, {}".format(type(a).__name__, type(b).__name__))
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data - b.data,requires_grad = requires_grad,is_leaf = not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return  tensorize(a.data - b.data,requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
         a, b = ctx.saved_tensors
-
         # calculate gradient of output w.r.t. each input
         # dL/grad_output = dout/grad_output * dL/dout
         grad_a = np.ones(a.shape) * grad_output.data
         # dL/db = dout/db * dL/dout
         grad_b = -np.ones(b.shape) * grad_output.data
-
-        # the order of gradients returned should xch the order of the arguments
-        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
+        grad_a, grad_b = map(tensorize ,map(unbroadcast,[grad_a, grad_b], [a.shape, b.shape]))
         return grad_a, grad_b
 
 class Mul(Function):
@@ -135,33 +115,21 @@ class Mul(Function):
         # Check that both args are tensors
         if not (type(a).__name__ == 'Tensor' and type(b).__name__ == 'Tensor'):
             raise Exception("Both args must be Tensors: {}, {}".format(type(a).__name__, type(b).__name__))
-
-        # Check that args have same shape
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a, b)
-
-        # Create addition output and sets `requires_grad and `is_leaf`
-        # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data * b.data, requires_grad=requires_grad,
-                                           is_leaf=not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(a.data * b.data, requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
         # retrieve forward inputs that we stored
         a, b = ctx.saved_tensors
-
         # calculate gradient of output w.r.t. each input
         # dL/grad_output = dout/grad_output * dL/dout
         grad_a = b.data * grad_output.data
         # dL/db = dout/db * dL/dout
         grad_b = a.data * grad_output.data
-
-        # the order of gradients returned should xch the order of the arguments
-        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
+        grad_a, grad_b = map(tensorize ,map(unbroadcast,[grad_a, grad_b], [a.shape, b.shape]))
         return grad_a, grad_b
 
 
@@ -172,8 +140,6 @@ class Sum(Function):
             raise Exception("Only Sum of tensor is supported")
         ctx.axis = axis
         ctx.shape = a.shape
-        # if axis is not None:
-        #     # ctx.len = a.shape[axis]
         ctx.keepdims = keepdims
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
@@ -183,19 +149,14 @@ class Sum(Function):
     @staticmethod
     def backward(ctx, grad_output):
         grad_out = grad_output.data
-
         if (ctx.axis is not None) and (not ctx.keepdims):
             grad_out = np.expand_dims(grad_output.data, axis=ctx.axis)
         else:
             grad_out = grad_output.data.copy()
-
         grad = np.ones(ctx.shape) * grad_out
-
         assert grad.shape == ctx.shape
-        # Take note that gradient tensors SHOULD NEVER have requires_grad = True.
+        # gradient tensors SHOULD NEVER have requires_grad = True.
         return tensorize(grad), None, None
-
-#
 
 class Div(Function):
     @staticmethod
@@ -203,17 +164,10 @@ class Div(Function):
         # Check that both args are tensors
         if not (type(a).__name__ == 'Tensor' and type(b).__name__ == 'Tensor'):
             raise Exception("Both args must be Tensors: {}, {}".format(type(a).__name__, type(b).__name__))
-
-        # Check that args have same shape
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a, b)
-
-        # Create addition output and sets `requires_grad and `is_leaf`
-        # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data / b.data, requires_grad=requires_grad,
-                                           is_leaf=not requires_grad)
+        is_leaf=not requires_grad
+        c = tensorize(a.data / b.data, requires_grad, is_leaf)
         return c
 
     @staticmethod
@@ -226,13 +180,9 @@ class Div(Function):
         grad_a = grad_output.data / b.data
         # dL/db = dout/db * dL/dout
         grad_b = (-a.data * grad_output.data) / (b.data ** 2)
-
         # the order of gradients returned should xch the order of the arguments
-        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
-        grad_b = tensor.Tensor(unbroadcast(grad_b, b.shape))
+        grad_a, grad_b = map(tensorize ,map(unbroadcast,[grad_a, grad_b], [a.shape, b.shape]))
         return grad_a, grad_b
-
-# TODO: Implement more Functions below
 
 class Pow(Function):
     @staticmethod
@@ -242,25 +192,16 @@ class Pow(Function):
             raise Exception("a must be Tensors: {}".format(type(a).__name__))
         if (type(b).__name__ == 'int' or type(b).__name__ == 'float'):
             b = tensor.Tensor(np.array(b))
-        # Check that args have same shape
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a, b)
-
-        # Create addition output and sets `requires_grad and `is_leaf`
-        # (see appendix A for info on those params)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data**b.data, requires_grad=requires_grad,
-                                           is_leaf=not requires_grad)
-        return c
+        is_leaf=not requires_grad
+        return tensorize(a.data**b.data, requires_grad, is_leaf)
     @staticmethod
     def backward(ctx, grad_output):
         a, b = ctx.saved_tensors
-        #b = Tensor.ones(*a.shape) * b
         grad_a =  b.data * (a.data ** (b.data - 1)) * grad_output.data
-
-        grad_a = tensor.Tensor(unbroadcast(grad_a, a.shape))
-        return grad_a,None
+        grad_a = tensorize(unbroadcast(grad_a, a.shape))
+        return grad_a, None
 
 class Exp(Function):
     @staticmethod
@@ -268,22 +209,15 @@ class Exp(Function):
         # Check that arg is a tensor
         if not (type(a).__name__ == 'Tensor'):
             raise Exception("arg must be a Tensor: {}, {}".format(type(a).__name__, type(b).__name__))
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a)
-
-        # Create addition output and sets `requires_grad and `is_leaf`
-        # (see appendix A for info on those params)
         requires_grad = a.requires_grad 
-        c = tensor.Tensor(np.exp(a.data), requires_grad=requires_grad,
-                                           is_leaf=not requires_grad)
-        return c
+        is_leaf=not requires_grad
+        return tensorize(np.exp(a.data), requires_grad, is_leaf)
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
         grad_a =  np.exp(a.data) * grad_output.data
-
-        return tensor.Tensor(grad_a),None
+        return tensorize(grad_a), None
 
 class MatMul(Function):
     @staticmethod
@@ -294,14 +228,13 @@ class MatMul(Function):
                     raise Exception("Both args must be Tensors & of same shape: {}, {}".format(type(a).__name__, type(b).__name__))
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
-        c = tensor.Tensor(a.data @ b.data, requires_grad = requires_grad,is_leaf = not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(a.data @ b.data, requires_grad, is_leaf )
     @staticmethod
     def backward(ctx, grad_output):
         a, b  = ctx.saved_tensors
-        grad_a = tensor.Tensor(grad_output.data @ b.data.T)
-        grad_b = tensor.Tensor(a.data.T @ grad_output.data)
-
+        grad_a = tensorize(grad_output.data @ b.data.T)
+        grad_b = tensorize(a.data.T @ grad_output.data)
         return grad_a, grad_b
 
 class ReLU(Function):
@@ -310,20 +243,15 @@ class ReLU(Function):
         # Check that arg is a tensor
         if not (type(a).__name__ == 'Tensor'):
             raise Exception("arg must be a Tensor: {}, {}".format(type(a).__name__, type(b).__name__))
-
-        # Save inputs to access later in backward pass.
         ctx.save_for_backward(a)
-        # Create addition output and sets `requires_grad and `is_leaf`
         requires_grad = a.requires_grad 
-        c = tensor.Tensor(np.where(a.data > 0,a.data, 0),requires_grad= requires_grad,
-                    is_leaf= not requires_grad)
-        return c
+        is_leaf= not requires_grad
+        return tensorize(np.where(a.data > 0,a.data, 0),requires_grad, is_leaf)
 
     @staticmethod
     def backward(ctx, grad_output):
         a,  = ctx.saved_tensors
-        grad_a = tensor.Tensor(np.where(a.data > 0, 1, 0)* grad_output.data)
-        
+        grad_a = tensorize(np.where(a.data > 0, 1, 0)* grad_output.data)
         return grad_a
 
 class Sigmoid(Function):
@@ -331,7 +259,7 @@ class Sigmoid(Function):
     def forward(ctx, a):
         b_data = np.divide(1.0, np.add(1.0, np.exp(-a.data)))
         ctx.out = b_data[:]
-        b = tensor.Tensor(b_data, requires_grad=a.requires_grad)
+        b = tensorize(b_data, a.requires_grad)
         b.is_leaf = not b.requires_grad
         return b
 
@@ -339,12 +267,12 @@ class Sigmoid(Function):
     def backward(ctx, grad_output):
         b = ctx.out
         grad = grad_output.data * b * (1-b)
-        return tensor.Tensor(grad)
+        return tensorize(grad)
     
 class Tanh(Function):
     @staticmethod
     def forward(ctx, a):
-        b = tensor.Tensor(np.tanh(a.data), requires_grad=a.requires_grad)
+        b = tensorize(np.tanh(a.data), a.requires_grad)
         ctx.out = b.data[:]
         b.is_leaf = not b.requires_grad
         return b
@@ -353,7 +281,7 @@ class Tanh(Function):
     def backward(ctx, grad_output):
         out = ctx.out
         grad = grad_output.data * (1-out**2)
-        return tensor.Tensor(grad)
+        return tensorize(grad)
        
 class Sqrt(Function):
     @staticmethod
@@ -362,14 +290,13 @@ class Sqrt(Function):
             raise Exception("Arg for Sqrt must be tensor: {}".format(type(a).__name__))
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
-        c = tensor.Tensor(np.sqrt(a.data),requires_grad = requires_grad,
-                    is_leaf = not requires_grad)
-        return c
+        is_leaf = not requires_grad
+        return tensorize(np.sqrt(a.data),requires_grad,is_leaf)
             
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
-        output = tensor.Tensor(1/2 *(a.data**(-1/2)) * grad_output.data)
+        output = tensorize(1/2 *(a.data**(-1/2)) * grad_output.data)
         return output
 
 class Max(Function):
@@ -502,8 +429,6 @@ class AccumulateGrad():
         grad_shape = self.variable.grad.shape
         assert shape == grad_shape, (shape, grad_shape)       
 
-
-    
 def cross_entropy(predicted, target):
     """Calculates Cross Entropy Loss (XELoss) between logits and true labels.
     For MNIST, don't call this function directly; use nn.loss.CrossEntropyLoss instead.
@@ -541,7 +466,7 @@ class Dropout(Function):
             raise Exception("Only dropout for tensors is supported")
         mask = np.random.binomial(n = 1, p = 1 - p, size = x.shape)
         mask = mask/(1-p)
-        mask = tensor.Tensor(mask, requires_grad=False)
+        mask = tensorize(mask, False)
         ctx.save_for_backward(mask)
         
         if is_train:
@@ -551,7 +476,7 @@ class Dropout(Function):
     @staticmethod
     def backward(ctx, grad_output):
         mask, = ctx.saved_tensors
-        return tensor.Tensor(grad_output.data * mask.data)
+        return tensorize(grad_output.data * mask.data)
 
 
 def to_one_hot(arr, num_classes):
@@ -574,7 +499,7 @@ def to_one_hot(arr, num_classes):
     arr = arr.data.astype(int)
     a = np.zeros((arr.shape[0], num_classes))
     a[np.arange(len(a)), arr] = 1
-    return tensor.Tensor(a, requires_grad = True)
+    return tensorize(a, True)
 
 def flatten(x):
     d1, d2 = x.shape[0], np.prod(x.shape[1:])
@@ -600,32 +525,30 @@ class Conv1d(Function):
         Returns:
             Tensor: (batch_size, out_channel, output_size) output data
         """
-        # For your convenience: ints for each size
         batch_size, in_channel, input_size = x.shape
         out_channel, _, kernel_size = weight.shape
         
         ctx.save_for_backward(x, weight)
         view = asStride(x.data, kernel_size, stride,mode = '1d')
         out = np.einsum('bilk,oik->bol', view, weight.data)
+        out += bias.data[None, :, None]
         ctx.cache = (stride, view)
         return tensorize(out, True, False)
     
     @staticmethod
     def backward(ctx, grad_output):
-        # TODO: Finish Conv1d backward pass. It's surprisingly similar to the forward pass.
         x, weight = ctx.saved_tensors
         stride, view = ctx.cache
         batch_size, in_channel, input_size = x.shape
-        out_channel, _, kernel_size = weight.shape
-        _, _, output_length = grad_output.shape
+        out_channel, in_channel, kernel_size = weight.shape
+        batch_size, num_filters, output_length = grad_output.shape
         grad_w = np.einsum('bol,bilk->oik', grad_output.data, view) 
         grad_x = np.zeros((batch_size, in_channel, input_size))
+        grad_b = np.einsum('bol->o', grad_output.data)   
         for k in range(output_length):
             X = k % output_length
             iX = X * stride
-            grad_x[:, :, iX:iX + kernel_size] += np.einsum('ik, kjy->ijy', grad_output.data[:, :, X], weight.data) #SLOWER than using tensordot
-            # grad_x[:, :, iX:iX+kernel_size] += np.tensordot(grad_output[:, :, X], weight, axes=[(1), (0)])   
-        grad_b = np.sum(grad_output.data, axis= (0, 2))      
+            grad_x[:, :, iX:iX + kernel_size] += np.einsum('bn, nik->bik', grad_output.data[:, :, X], weight.data) #SLOWER than using tensordot
         grad_x, grad_w, grad_b = map(tensorize, [grad_x, grad_w, grad_b])
         return grad_x, grad_w, grad_b
 
@@ -643,41 +566,32 @@ class Conv2d(Function):
         Returns:
             Tensor: (batch_size, out_channel, output_size) output data
         """
-        # For your convenience: ints for each size
-        # batch_size, in_channel, input_height, input_width = x.shape
         out_channel, in_channel, kernel_size, kernel_size = weight.shape
         view = asStride(x.data, (kernel_size,kernel_size), stride)
-
         out = np.einsum('bihwkl,oikl->bohw', view, weight.data)
         out += bias.data[None, :, None, None]
         ctx.save_for_backward(x, weight)
         ctx.cache = (stride, view)
         return tensorize(out, True, False)
-
  
     @staticmethod
     def backward(ctx, grad_output):
         x, weight = ctx.saved_tensors
-        stride, input_reshaped = ctx.cache
+        stride, view = ctx.cache
 
         batch_size, in_channel, im_height, im_width = x.shape
-        num_filters, _, kernel_height, kernel_width = weight.shape
-        _, _, output_height, output_width = grad_output.shape
-
-        grad_w = np.einsum('ikYX, ijYXyx -> kjyx', grad_output.data, input_reshaped) 
-        # grad_w = np.tensordot(grad_output.data, input_reshaped, axes=[(0,2,3),(0,2,3)])
-        grad_x = np.zeros((batch_size, in_channel, im_height, im_width), dtype=grad_output.data.dtype)
+        num_filters, in_channel, kernel_height, kernel_width = weight.shape
+        batch_size, num_filters, output_height, output_width = grad_output.shape
+        grad_w = np.einsum('bnhw, bihwyx-> niyx', grad_output.data, view) 
+        grad_x = np.zeros((batch_size, in_channel, im_height, im_width))
+        grad_b = np.einsum('bnhw-> n', grad_output.data) 
 
         for k in range(output_height * output_width):
             X, Y = k % output_height, k // output_width
-            iX, iY = X * stride, Y * stride
-            grad_x[:,:, iY:iY+kernel_height, iX:iX+kernel_width] += np.einsum('ik,kjyx->ijyx', grad_output.data[:,:,Y,X], weight.data) 
-            # SLOWER than using tensordot
-            # grad_x[:,:, iY:iY+kernel_height, iX:iX+kernel_width] += np.tensordot(grad_output.data[:,:,Y,X], weight.data, axes=[(1), (0)])
+            iX, iY = X * stride, Y * stride # ik,kjyx->ijyx'
+            grad_x[:,:, iY:iY+kernel_height, iX:iX+kernel_width] += np.einsum('bn, niyx-> biyx', grad_output.data[:,:,Y,X], weight.data) 
 
         grad_x = grad_x.reshape((batch_size, in_channel, im_height, im_width))
-
-        grad_b = np.sum(grad_output.data, axis= (0, 2, 3)) 
         dx, dw, db = map(tensorize, [grad_x, grad_w, grad_b])
 
         return dx, dw, db 
@@ -686,7 +600,6 @@ class Conv2d(Function):
 def tensorize(x, grad = False, leaf = False, param = False):
     return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param)
     
-
 def get_conv2d_output_size(input_height, input_width, kernel_size, stride, padding):
     out_h = (input_height - kernel_size + 2 * padding) // stride + 1
     out_w = (input_width - kernel_size + 2 * padding) // stride + 1
@@ -726,7 +639,6 @@ class MaxPool2d(Function):
 
         return out
 
-
     @staticmethod
     def backward(ctx, grad_output):
         """
@@ -741,14 +653,10 @@ class MaxPool2d(Function):
                                                         (This is just a suggestion; may depend on how
                                                          you've written `autograd_engine.py`)
         """
-        # x, = ctx.saved_tensors
         in_shape, stride, kernel_size, pos = ctx.cache
-        # out = unpool(grad_output.data, pos, ori_shape, stride)
         out = max_mean_bkwrd(in_shape, grad_output.data, kernel_size, stride, 'max', pos = pos)
 
         return tensorize(out), None, None
-
-
 
 class AvgPool2d(Function):
     @staticmethod
@@ -770,7 +678,6 @@ class AvgPool2d(Function):
         out = tensorize(out, True, False)
 
         return out
-
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -899,20 +806,15 @@ def asStride(arr, sub_shape, stride, mode = '2d'):
         m, ci, hi, wi = arr.shape
         batch_size, in_channel, im_height, im_width = arr.shape
         f1, f2 = sub_shape
-
         view_shape = (m, ci,1+(hi-f1)//stride, 1+(wi-f2)//stride, f1, f2)
         strides = (sm, sc,stride*sh, stride*sw, sh, sw)
-        # print(f'strides {strides} in_channel {ci}')
     else:
         sm, sc, ss = arr.strides
         batch_size, in_channel, input_size = arr.shape
         kernel_size = sub_shape
         output_length = get_conv1d_output_size(input_size, kernel_size, stride)
         view_shape = (batch_size, in_channel,output_length,kernel_size)
-        # ty = [type(i) for i in [in_channel, kernel_size, batch_size, output_length]]
-        # print(f'type {ty}')
         strides = (sm, sc,stride*ss,ss)
-        # print(f'strides {strides} in_channel {in_channel}')
     subs = np.lib.stride_tricks.as_strided(
         arr, view_shape, strides=strides, writeable=False)
 
