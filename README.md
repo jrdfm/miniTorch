@@ -12,6 +12,7 @@ Inspired by Karphaty's [micrograd](https://github.com/karpathy/micrograd), geoho
 - Layers: Linear, BatchNorm1d, BatchNorm2d, Flatten, Dropout
 - Optimizers: SGD, Adam
 - Loss: CrossEntropyLoss, Mean squared error
+- RNN, GRU
 
 
 # Todo
