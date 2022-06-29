@@ -12,15 +12,22 @@
 #   ./grade.sh 4b: hw4 bonus autograder
 
 if [ -z $1 ]; then
+    echo "Grade All"
     echo "./grade.sh 1: hw1 autograder"
-    echo "./grade.sh m: hw1 mnist"
+    python3 ./autograder/hw1_autograder/runner.py
+    # echo "./grade.sh m: hw1 mnist"
+    # python3 ./autograder/hw1_autograder/test_mnist.py
     echo "./grade.sh 1b: hw1 bonus autograder"
+    python3 ./autograder/hw1_bonus_autograder/runner.py
     echo "./grade.sh 2: hw2 autograder"
+    python3 ./autograder/hw2_autograder/runner.py
     echo "./grade.sh 2b: hw2 bonus autograder"
+    python3 ./autograder/hw2_bonus_autograder/runner.py
     echo "./grade.sh 3: hw3 autograder"
-    echo "./grade.sh 3b: hw3 bonus autograder"
-    echo "./grade.sh 4: hw4 autograder"
-    echo "./grade.sh 4b: hw4 bonus autograder"
+    python3 ./autograder/hw3_bonus_autograder/runner.py
+    # echo "./grade.sh 3b: hw3 bonus autograder"
+    # echo "./grade.sh 4: hw4 autograder"
+    # echo "./grade.sh 4b: hw4 bonus autograder"
     exit
 fi
 
