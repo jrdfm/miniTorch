@@ -8,8 +8,7 @@ sys.path.append('autograder')
 from helpers import *
 
 sys.path.append('./')
-from mytorch.nn.conv import *
-from mytorch.nn.sequential import Sequential
+from mytorch.nn.module import *
 
 
 from mytorch.tensor import Tensor

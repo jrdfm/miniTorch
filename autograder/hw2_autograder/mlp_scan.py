@@ -1,10 +1,11 @@
 import numpy as np
 
 from mytorch.nn.activations import ReLU
-from mytorch.nn.conv import Conv1d, Flatten
-from mytorch.nn.linear import Linear
-from mytorch.nn.sequential import Sequential
+# from mytorch.nn.conv import Conv1d, Flatten
+# from mytorch.nn.linear import Linear
+# from mytorch.nn.sequential import Sequential
 from mytorch.tensor import Tensor
+from mytorch.nn.module import *
 
 
 class CNN_SimpleScanningMLP:

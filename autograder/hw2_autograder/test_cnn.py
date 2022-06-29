@@ -15,10 +15,10 @@ sys.path.append('handin')
 
 from mytorch.optim.sgd import SGD
 from mytorch.tensor import Tensor
-from mytorch.nn.sequential import Sequential
-from mytorch.nn.linear import Linear
-from mytorch.nn.conv import Conv1d, Flatten
-from mytorch.nn.loss import *
+# from mytorch.nn.sequential import Sequential
+# from mytorch.nn.linear import Linear
+# from mytorch.nn.conv import Conv1d, Flatten
+from mytorch.nn.module import *
 from hw2 import CNN
 from mytorch.nn.activations import *
 
@@ -27,6 +27,7 @@ def test_cnn_step():
     np.random.seed(11785)
 
     mytorch_cnn = CNN()
+    print(f'None {mytorch_cnn is None}')
     mytorch_optimizer = SGD(mytorch_cnn.parameters())
 
     pytorch_cnn = nn.Sequential(

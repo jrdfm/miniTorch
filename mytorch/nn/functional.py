@@ -576,7 +576,9 @@ def to_one_hot(arr, num_classes):
     a[np.arange(len(a)), arr] = 1
     return tensor.Tensor(a, requires_grad = True)
 
-
+def flatten(x):
+    d1, d2 = x.shape[0], np.prod(x.shape[1:])
+    return x.reshape((d1, d2))
 
 
 class Conv1d(Function):
@@ -602,24 +604,30 @@ class Conv1d(Function):
         batch_size, in_channel, input_size = x.shape
         out_channel, _, kernel_size = weight.shape
         
-        # TODO: Save relevant variables for backward pass
-        
-        # TODO: Get output size by finishing & calling get_conv1d_output_size()
-        # output_size = get_conv1d_output_size(None, None, None)
-
-        # TODO: Initialize output with correct size
-        # out = np.zeros(())
-        
-        # TODO: Calculate the Conv1d output.
-        # Remember that we're working with np.arrays; no new operations needed.
-        
-        # TODO: Put output into tensor with correct settings and return 
-        raise NotImplementedError("Implement functional.Conv1d.forward()!")
+        ctx.save_for_backward(x, weight)
+        view = asStride(x.data, kernel_size, stride,mode = '1d')
+        out = np.einsum('bilk,oik->bol', view, weight.data)
+        ctx.cache = (stride, view)
+        return tensorize(out, True, False)
     
     @staticmethod
     def backward(ctx, grad_output):
         # TODO: Finish Conv1d backward pass. It's surprisingly similar to the forward pass.
-        raise NotImplementedError("Implement functional.Conv1d.backward()!")
+        x, weight = ctx.saved_tensors
+        stride, view = ctx.cache
+        batch_size, in_channel, input_size = x.shape
+        out_channel, _, kernel_size = weight.shape
+        _, _, output_length = grad_output.shape
+        grad_w = np.einsum('bol,bilk->oik', grad_output.data, view) 
+        grad_x = np.zeros((batch_size, in_channel, input_size))
+        for k in range(output_length):
+            X = k % output_length
+            iX = X * stride
+            grad_x[:, :, iX:iX + kernel_size] += np.einsum('ik, kjy->ijy', grad_output.data[:, :, X], weight.data) #SLOWER than using tensordot
+            # grad_x[:, :, iX:iX+kernel_size] += np.tensordot(grad_output[:, :, X], weight, axes=[(1), (0)])   
+        grad_b = np.sum(grad_output.data, axis= (0, 2))      
+        grad_x, grad_w, grad_b = map(tensorize, [grad_x, grad_w, grad_b])
+        return grad_x, grad_w, grad_b
 
     
 class Conv2d(Function):
@@ -627,8 +635,8 @@ class Conv2d(Function):
     def forward(ctx, x, weight, bias, stride, padding):
         """The forward/backward of a Conv2d Layer in the comp graph.
         Args:
-            x (Tensor): (batch_size, in_channel, input_size) input data
-            weight (Tensor): (out_channel, in_channel, kernel_size)
+            x (Tensor): (batch_size, in_channel, input_height, input_width) input data
+            weight (Tensor): (out_channel, in_channel, kernel_size, kernel_size)
             bias (Tensor): (out_channel,)
             stride (int): Stride of the convolution
         
@@ -638,16 +646,12 @@ class Conv2d(Function):
         # For your convenience: ints for each size
         # batch_size, in_channel, input_height, input_width = x.shape
         out_channel, in_channel, kernel_size, kernel_size = weight.shape
+        view = asStride(x.data, (kernel_size,kernel_size), stride)
 
-        n, c, h, w = x.shape
-        out_h, out_w = get_conv2d_output_size(h, w, kernel_size, stride, padding)
-
-        cols = window(x.data, weight.data, stride, out_h, out_w)
-        out = np.einsum('bihwkl,oikl->bohw', cols, weight.data)
-
+        out = np.einsum('bihwkl,oikl->bohw', view, weight.data)
         out += bias.data[None, :, None, None]
         ctx.save_for_backward(x, weight)
-        ctx.cache = (stride, cols)
+        ctx.cache = (stride, view)
         return tensorize(out, True, False)
 
  
@@ -679,22 +683,6 @@ class Conv2d(Function):
         return dx, dw, db 
 
 
-def window(x, w, stride,output_height, output_width):
-        num_filters, _, kernel_height, kernel_width = w.shape
-        batch_size, in_channel, im_height, im_width = x.shape
-        strides = (im_height * im_width, im_width, 1, in_channel * im_height * im_height, stride * im_width, stride)
-        strides = x.itemsize * np.array(strides)
-
-        cols = np.lib.stride_tricks.as_strided(
-            x=x,
-            shape=(in_channel, kernel_height, kernel_width, batch_size, output_height, output_width),
-            strides=strides,
-            writeable=False
-        )
-        cols = cols.transpose(3, 0, 4, 5, 1, 2)
-        return cols
-
-
 def tensorize(x, grad = False, leaf = False, param = False):
     return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param)
     
@@ -715,7 +703,7 @@ def get_conv1d_output_size(input_size, kernel_size, stride):
     Returns:
         int: size of the output as an int (not a Tensor or np.array)
     """
-    return ((input_size - kernel_size) / stride) + 1
+    return ((input_size - kernel_size) // stride) + 1
 
 class MaxPool2d(Function):
     @staticmethod
@@ -881,19 +869,19 @@ def pool(x, f, stride=None, method='max', pad=False,
         return result,view
 
 
-def asStride(arr, sub_shape, stride):
+def asStride(arr, sub_shape, stride, mode = '2d'):
     '''Get a strided sub-xrices view of an ndarray.
 
     Args:
-        arr (ndarray): input array of rank 4, with shape (m, hi, wi, ci).
+        arr (ndarray): input array of rank 4, with shape  m, ci, hi, wi
         sub_shape (tuple): window size: (f1, f2).
         stride (int): stride of windows in both 2nd and 3rd dimensions.
     Returns:
         subs (view): strided window view.
 
     This is used to facilitate a vectorized 3d convolution.
-    The input array <arr> has shape (m, hi, wi, ci), and is transformed
-    to a strided view with shape (m, ho, wo, f, f, ci). where:
+    The input array <arr> has shape  m, ci, hi, wi, and is transformed
+    to a strided view with shape (m, ci, ho, wo, f, f). where:
         m: number of records.
         hi, wi: height and width of input image.
         ci: channels of input image.
@@ -906,15 +894,28 @@ def asStride(arr, sub_shape, stride):
         conv = np.tensordot(arr_view, kernel, axes=([3, 4, 5], [0, 1, 2]))
 
     '''
-    sm, sc, sh, sw= arr.strides
-    m, ci, hi, wi = arr.shape
-    f1, f2 = sub_shape
+    if mode == '2d':
+        sm, sc, sh, sw = arr.strides
+        m, ci, hi, wi = arr.shape
+        batch_size, in_channel, im_height, im_width = arr.shape
+        f1, f2 = sub_shape
 
-    view_shape = (m, ci,1+(hi-f1)//stride, 1+(wi-f2)//stride, f1, f2)
-    strides = (sm, sc,stride*sh, stride*sw, sh, sw)
-
+        view_shape = (m, ci,1+(hi-f1)//stride, 1+(wi-f2)//stride, f1, f2)
+        strides = (sm, sc,stride*sh, stride*sw, sh, sw)
+        # print(f'strides {strides} in_channel {ci}')
+    else:
+        sm, sc, ss = arr.strides
+        batch_size, in_channel, input_size = arr.shape
+        kernel_size = sub_shape
+        output_length = get_conv1d_output_size(input_size, kernel_size, stride)
+        view_shape = (batch_size, in_channel,output_length,kernel_size)
+        # ty = [type(i) for i in [in_channel, kernel_size, batch_size, output_length]]
+        # print(f'type {ty}')
+        strides = (sm, sc,stride*ss,ss)
+        # print(f'strides {strides} in_channel {in_channel}')
     subs = np.lib.stride_tricks.as_strided(
         arr, view_shape, strides=strides, writeable=False)
 
     return subs
+
 

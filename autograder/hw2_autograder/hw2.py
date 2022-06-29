@@ -3,11 +3,11 @@ import sys
 import numpy as np
 
 from mytorch.nn.activations import Tanh, ReLU, Sigmoid
-from mytorch.nn.conv import Conv1d, Flatten
-from mytorch.nn.functional import get_conv1d_output_size
-from mytorch.nn.linear import Linear
-from mytorch.nn.module import Module
-from mytorch.nn.sequential import Sequential
+# from mytorch.nn.conv import Conv1d, Flatten
+# from mytorch.nn.functional import get_conv1d_output_size
+# from mytorch.nn.linear import Linear
+from mytorch.nn.module import *
+# from mytorch.nn.sequential import Sequential
 
 
 class CNN(Module):

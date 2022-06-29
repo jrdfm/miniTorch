@@ -330,7 +330,9 @@ class Flatten(Module):
         Returns:
             out (Tensor): (batch_size, dim_2 * dim_3 * ...) batch_size, then all other dims flattened
         """
-        raise Exception("TODO! One line of code. See writeup for hint.")
+        return F.flatten(x)
+        # d1, d2 = x.shape[0], np.prod(x.shape[1:])
+        # return x.reshape((d1, d2))
 
 
 

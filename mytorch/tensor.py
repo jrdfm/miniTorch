@@ -115,6 +115,11 @@ class Tensor:
             i_p = indices[i]
         return ls
 
+    def flatten(self):
+        return F.flatten(self)
+
+
+
     # Below methods can be used WITHOUT creating a tensor first
     # (For example, we can call Tensor.zeros(3,2) directly)
 
