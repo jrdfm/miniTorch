@@ -2,7 +2,7 @@
 
 Automatic differentiation engine that is similar to PyTorch, used to automatically calculate the derivative
 / gradient of any computable function.
-Inspired by [Karphaty's micrograd](https://github.com/karpathy/micrograd) and [geohot's tinygrad](https://github.com/geohot/tinygrad) and CMU 11-785 Introduction to Deep Learning notes.
+Inspired by Karphaty's [micrograd](https://github.com/karpathy/micrograd), geohot's [tinygrad](https://github.com/geohot/tinygrad) and [nanograd](https://github.com/PABannier/nanograd) and CMU 11-785 Introduction to Deep Learning notes.
 
 # Features
 
