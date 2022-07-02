@@ -24,7 +24,7 @@ if [ -z $1 ]; then
     echo "./grade.sh 2b: hw2 bonus autograder"
     python3 ./autograder/hw2_bonus_autograder/runner.py
     echo "./grade.sh 3: hw3 autograder"
-    python3 ./autograder/hw3_bonus_autograder/runner.py
+    python3 ./autograder/hw3_autograder/runner.py
     # echo "./grade.sh 3b: hw3 bonus autograder"
     # echo "./grade.sh 4: hw4 autograder"
     # echo "./grade.sh 4b: hw4 bonus autograder"
