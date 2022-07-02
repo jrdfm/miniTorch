@@ -72,7 +72,9 @@ class Add(Function):
         ctx.save_for_backward(a, b)
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf = not requires_grad
-        return tensorize(a.data + b.data, requires_grad, is_leaf)
+        out = tensorize(a.data + b.data, requires_grad, is_leaf)
+        out.children, out.op  = [a, b], 'add'
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -118,7 +120,9 @@ class Mul(Function):
         ctx.save_for_backward(a, b)
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf = not requires_grad
-        return tensorize(a.data * b.data, requires_grad, is_leaf)
+        out = tensorize(a.data * b.data, requires_grad, is_leaf)
+        out.children, out.op = [a, b], 'mul'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -246,7 +250,9 @@ class ReLU(Function):
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad 
         is_leaf= not requires_grad
-        return tensorize(np.where(a.data > 0,a.data, 0),requires_grad, is_leaf)
+        out = tensorize(np.where(a.data > 0,a.data, 0),requires_grad, is_leaf)
+        out.children, out.op = [a], 'Relu' 
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -261,6 +267,7 @@ class Sigmoid(Function):
         ctx.out = b_data[:]
         b = tensorize(b_data, a.requires_grad)
         b.is_leaf = not b.requires_grad
+        b.children, b.op = [a], 'Sigmoid'
         return b
 
     @staticmethod

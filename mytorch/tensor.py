@@ -2,6 +2,7 @@ import numpy as np
 
 import mytorch.autograd_engine as autograd_engine
 from mytorch.nn import functional as F
+from mytorch.nn.comp_graph import ForwardGraphVisualizer, BackwardGraphVisualizer
 
 
 def cat(seq,dim=0):
@@ -49,7 +50,7 @@ class Tensor:
         is_parameter (boolean): If true, data contains trainable params
     """
     def __init__(self, data, requires_grad=False, is_leaf=True,
-                 is_parameter=False):
+                 is_parameter=False, name = None, op = None):
         if  type(data).__name__ == 'ndarray':
             self.data = data
         else:
@@ -61,6 +62,8 @@ class Tensor:
         self.grad_fn = None # Set during forward pass
         self.grad = None
         self.is_parameter = is_parameter
+        self.name, self.op = name, op
+        self.children = []
 
     # ------------------------------------
     # [Not important] For printing tensors
@@ -159,7 +162,10 @@ class Tensor:
         [6.95058141e-310]
         """
         return Tensor(np.empty(shape))
-
+    
+    @classmethod
+    def normal(cls, loc, scale, *shape, **kwargs):
+        return cls(np.random.normal(loc, scale, *shape), **kwargs)
     # ----------------------
     # Autograd backward init
     # ----------------------
@@ -354,3 +360,40 @@ class Tensor:
 
 
 
+
+    # ****************************************
+    # ******** Activation functions **********
+    # ****************************************
+
+    def relu(self):
+        return F.ReLU.apply(self)
+    
+    def sigmoid(self):
+        return F.Sigmoid.apply(self)
+
+    def tanh(self):
+        return F.Tanh.apply(self)
+
+    # ****************************************
+    # ************ Visualization *************
+    # ****************************************
+
+    def plot_forward(self, rankdir="LR"):
+        r"""
+            Plots a forward computational graph
+
+            Args:
+                rankdir (str): LR (left to right) and TB (top to bottom)
+        """
+        visualizer = ForwardGraphVisualizer()
+        return visualizer.visualize(self, rankdir=rankdir)
+    
+    def plot_backward(self, rankdir="LR"):
+        r"""
+            Plots a backward computational graph
+
+            Args:
+                rankdir (str): LR (left to right) and TB (top to bottom)
+        """
+        visualizer = BackwardGraphVisualizer()
+        return visualizer.visualize(self, rankdir=rankdir)

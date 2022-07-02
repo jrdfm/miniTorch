@@ -35,7 +35,10 @@ class CompGraphVisualizer:
     def _build_trace(self, node):
         """Performs a recursive depth-first search over the computational graph."""
         if node not in self.nodes:
-            self.nodes.add(node)
+            if node:
+                # print(f'self.name != "None" {node.name != "None" }')
+                self.nodes.add(node)
+                print(f'added {node.name}')
             for child in node.children:
                 self.edges.add((child, node))
                 self._build_trace(child)
@@ -59,16 +62,22 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'chartreuse1', 'style': '', 'shape' : 'box3d'})
         
         for n in self.nodes:
             name = n.name if n.name != "no_name" else (n.op + '_res' if n.op else n.name)
-            graph.node(name=str(id(n)), label = f"{name} | {n.shape}", shape='record')
+            print(f'name label {f"{name} | {n.shape}"}')
+            graph.attr('node',shape = 'box3d',color = 'chartreuse1',style = '')
+            graph.node(name=str(id(n)), label = f"{name} \n {n.shape}")
             if n.op:
+                graph.attr('node',shape = 'ellipse',color = 'lightblue2', style='filled')
+                print(f'op {n.op} ')
                 graph.node(name=str(id(n)) + n.op, label=n.op)
+                graph.attr('edge',color = 'red')
                 graph.edge(str(id(n)) + n.op, str(id(n)))
         
         for n1, n2 in self.edges:
+
             if n2.op:
                 graph.edge(str(id(n1)), str(id(n2)) + n2.op)
             else:
