@@ -20,7 +20,6 @@ from mytorch.tensor import Tensor
 # from mytorch.nn.conv import Conv1d, Flatten
 from mytorch.nn.module import *
 from hw2 import CNN
-from mytorch.nn.activations import *
 
 # back / forward tests
 def test_cnn_step():

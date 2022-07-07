@@ -13,8 +13,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 from helpers import *
-from mytorch.nn.activations import *
-from mytorch.nn.module import Linear,Sequential,CrossEntropyLoss,BatchNorm1d
+from mytorch.nn.module import Linear,Sequential,CrossEntropyLoss,BatchNorm1d,ReLU
 
 from mytorch.optim.adam import Adam
 from mytorch.tensor import Tensor

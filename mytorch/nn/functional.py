@@ -20,7 +20,9 @@ class Transpose(Function):
             raise Exception("Arg for Transpose must be 2D tensor: {}".format(a.shape))
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
-        return tensorize(a.data.T, requires_grad, is_leaf)
+        out = tensorize(a.data.T, requires_grad, is_leaf)
+        out.children, out.op  = [a], 'transpose'
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -34,7 +36,9 @@ class Reshape(Function):
         ctx.shape = a.shape
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
-        return tensorize(a.data.reshape(shape), requires_grad, is_leaf)
+        out = tensorize(a.data.reshape(shape), requires_grad, is_leaf)
+        out.children, out.op  = [a], 'reshape'
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -48,8 +52,9 @@ class Log(Function):
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
-        return tensorize(np.log(a.data), requires_grad, is_leaf)
-
+        out = tensorize(np.log(a.data), requires_grad, is_leaf)
+        out.children, out.op  = [a], 'log'
+        return out
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
@@ -494,12 +499,13 @@ class Dropout(Function):
             raise Exception("Only dropout for tensors is supported")
         mask = np.random.binomial(n = 1, p = 1 - p, size = x.shape)
         mask = mask/(1-p)
-        mask = tensorize(mask, False)
+        mask = tensorize(mask, False, name="dropout_mask")
         ctx.save_for_backward(mask)
         
         if is_train:
-            x *= mask
-        return x
+            out = x * mask
+            out.name = 'dropout_res'
+        return out
             
     @staticmethod
     def backward(ctx, grad_output):
@@ -629,8 +635,8 @@ class Conv2d(Function):
         return dx, dw, db 
 
 
-def tensorize(x, grad = False, leaf = False, param = False):
-    return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param)
+def tensorize(x, grad = False, leaf = False, param = False, name = None):
+    return tensor.Tensor(x,requires_grad= grad ,is_leaf=leaf, is_parameter= param, name=name)
     
 def get_conv2d_output_size(input_height, input_width, kernel_size, stride, padding):
     out_h = (input_height - kernel_size + 2 * padding) // stride + 1

@@ -9,8 +9,7 @@ from helpers import *
 
 sys.path.append('./')
 from mytorch.optim.sgd import SGD
-from mytorch.nn.module import Sequential, Linear, Conv1d, Conv2d
-from mytorch.nn.activations import *
+from mytorch.nn.module import Sequential, Linear, Conv1d, Conv2d, ReLU
 from mytorch.tensor import Tensor
 
 

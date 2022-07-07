@@ -1,8 +1,7 @@
 import numpy as np
 from mytorch import tensor
 from mytorch.tensor import Tensor
-from mytorch.nn.module import Module
-from mytorch.nn.activations import Tanh, ReLU, Sigmoid
+from mytorch.nn.module import *
 from mytorch.nn.util import PackedSequence, pack_sequence, unpack_sequence
 
 

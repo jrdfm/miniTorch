@@ -38,7 +38,7 @@ class CompGraphVisualizer:
             if node:
                 # print(f'self.name != "None" {node.name != "None" }')
                 self.nodes.add(node)
-                print(f'added {node.name}')
+                # print(f'added {node.name}')
             for child in node.children:
                 self.edges.add((child, node))
                 self._build_trace(child)
@@ -62,7 +62,7 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cyan', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cadetblue1', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
             name = n.name if n.name else (n.op + '_res' if n.op else "")

@@ -10,10 +10,9 @@ from helpers import *
 sys.path.append('./')
 
 from mytorch.optim.sgd import SGD
-from mytorch.nn.module import MaxPool2d, AvgPool2d, Sequential, Linear, Conv1d, Conv2d
+from mytorch.nn.module import MaxPool2d, AvgPool2d, Sequential, Linear, Conv1d, Conv2d, ReLU
 
 
-from mytorch.nn.activations import *
 from mytorch.tensor import Tensor
 
 

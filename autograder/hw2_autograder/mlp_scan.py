@@ -1,6 +1,5 @@
 import numpy as np
 
-from mytorch.nn.activations import ReLU
 from mytorch.nn.functional import tensorize
 from mytorch.nn.module import *
 

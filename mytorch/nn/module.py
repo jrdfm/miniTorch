@@ -114,11 +114,11 @@ class Linear(Module):
         k = 1 / in_features
         weight = k * (np.random.rand(out_features, in_features) - 0.5)
         bias = k * (np.random.rand(out_features) - 0.5)
-        self.weight = Tensor(weight, requires_grad=True, is_parameter=True)
-        self.bias = Tensor(bias, requires_grad=True, is_parameter=True)
+        self.weight = Tensor(weight, requires_grad=True, is_parameter=True, name = "linear_weight")
+        self.bias = Tensor(bias, requires_grad=True, is_parameter=True,name="linear_bias")
 
-    def __call__(self, x):
-        return self.forward(x)
+    # def __call__(self, x):
+    #     return self.forward(x)
 
     def forward(self, x):
         """
@@ -183,10 +183,48 @@ class Sequential(Module):
             Tensor: Output after passing through layers
         """
         for layer in self.layers:
-            x = layer.forward(x)
+            x = layer(x)
         return x
 
+class ReLU(Module):
+    """ReLU activation function
 
+    Example:
+    >>> relu = ReLU()
+    >>> relu(input_tensor)
+    <some output>
+
+    We run this class like a function because of Module.__call__().
+
+    Inherits from:
+        Module (mytorch.nn.module.Module)
+    """
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        """ReLU forward pass.
+
+        Args:
+            x (Tensor): input before ReLU
+        Returns:
+            Tensor: input after ReLU
+        """
+        return F.ReLU.apply(x)
+
+class Tanh(Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return F.Tanh.apply(x)
+
+class Sigmoid(Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return F.Sigmoid.apply(x)
 
 
 class BatchNorm1d(Module):

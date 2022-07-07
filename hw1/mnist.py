@@ -4,8 +4,7 @@ import numpy as np
 
 from mytorch.optim.sgd import SGD
 from mytorch.optim.adam import Adam
-from mytorch.nn.activations import ReLU
-from mytorch.nn.module import Linear, Sequential, BatchNorm1d, CrossEntropyLoss
+from mytorch.nn.module import Linear, Sequential, BatchNorm1d, ReLU, CrossEntropyLoss
 
 from mytorch.tensor import Tensor
 from tqdm import trange, tqdm
