@@ -62,7 +62,7 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'aqua', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cyan', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
             name = n.name if n.name else (n.op + '_res' if n.op else "")

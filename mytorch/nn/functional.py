@@ -98,7 +98,9 @@ class Sub(Function):
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf = not requires_grad
-        return  tensorize(a.data - b.data,requires_grad, is_leaf)
+        out = tensorize(a.data - b.data,requires_grad, is_leaf)
+        out.children, out.op  = [a, b], 'sub'
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -147,8 +149,9 @@ class Sum(Function):
         ctx.keepdims = keepdims
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
-        out = a.data.sum(axis = axis, keepdims = keepdims)
-        return tensorize(out, requires_grad, is_leaf)
+        out = tensorize(a.data.sum(axis = axis, keepdims = keepdims), requires_grad, is_leaf)
+        out.children, out.op = [a], 'sum'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -172,7 +175,8 @@ class Div(Function):
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf=not requires_grad
         c = tensorize(a.data / b.data, requires_grad, is_leaf)
-        return c
+        c.children, c.op = [a, b], 'div'
+        return c 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -199,7 +203,10 @@ class Pow(Function):
         ctx.save_for_backward(a, b)
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf=not requires_grad
-        return tensorize(a.data**b.data, requires_grad, is_leaf)
+        out = tensorize(a.data**b.data, requires_grad, is_leaf)
+        out.children, out.op = [a, b], 'pow'
+        return out 
+
     @staticmethod
     def backward(ctx, grad_output):
         a, b = ctx.saved_tensors
@@ -216,7 +223,10 @@ class Exp(Function):
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad 
         is_leaf=not requires_grad
-        return tensorize(np.exp(a.data), requires_grad, is_leaf)
+        out = tensorize(np.exp(a.data), requires_grad, is_leaf)
+        out.children, out.op = [a], 'exp'
+        return out 
+
     @staticmethod
     def backward(ctx, grad_output):
         a, = ctx.saved_tensors
@@ -233,7 +243,9 @@ class MatMul(Function):
         ctx.save_for_backward(a ,b)
         requires_grad = a.requires_grad or b.requires_grad
         is_leaf = not requires_grad
-        return tensorize(a.data @ b.data, requires_grad, is_leaf )
+        out = tensorize(a.data @ b.data, requires_grad, is_leaf )
+        out.children, out.op = [a, b], 'matmul'
+        return out 
     @staticmethod
     def backward(ctx, grad_output):
         a, b  = ctx.saved_tensors
@@ -282,6 +294,7 @@ class Tanh(Function):
         b = tensorize(np.tanh(a.data), a.requires_grad)
         ctx.out = b.data[:]
         b.is_leaf = not b.requires_grad
+        b.children, b.op = [a], 'Tanh'
         return b
 
     @staticmethod
@@ -298,7 +311,9 @@ class Sqrt(Function):
         ctx.save_for_backward(a)
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
-        return tensorize(np.sqrt(a.data),requires_grad,is_leaf)
+        out = tensorize(np.sqrt(a.data),requires_grad,is_leaf)
+        out.children, out.op = [a], 'sqrt'
+        return out 
             
     @staticmethod
     def backward(ctx, grad_output):
@@ -315,7 +330,8 @@ class Max(Function):
         out = max_min_forward(a.data, axis, 'max')
         out = tensorize(out, requires_grad, is_leaf)
         ctx.axis, ctx.out = axis, out.data
-        return out
+        out.children, out.op = [a], 'max'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -333,7 +349,8 @@ class Min(Function):
         out = max_min_forward(a.data, axis, 'min')
         out = tensorize(out, requires_grad, is_leaf)
         ctx.axis, ctx.out = axis, out.data
-        return out
+        out.children, out.op = [a], 'min'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -376,6 +393,8 @@ class Cat(Function):
         output = tensorize(np.concatenate(arr,dim), requires_grad, not requires_grad)
         shapes = [i.shape for i in seq if i is not None] # shapes for backward
         ctx.cache = dim, shapes
+        # print(f'len args {len(args)}')
+        # output.children, output.op = list(args), 'cat'
         return output
 
     @staticmethod
@@ -397,7 +416,9 @@ class Slice(Function):
         ctx.save_for_backward(x)
         ctx.indices = indices
         grad = x.requires_grad
-        return tensorize(x.data[indices], grad, not grad)
+        out = tensorize(x.data[indices], grad, not grad)
+        out.children, out.op = [x], 'slice'
+        return out 
 
     @staticmethod
     def backward(ctx,grad_output):
@@ -540,7 +561,9 @@ class Conv1d(Function):
         out = np.einsum('bilk,oik->bol', view, weight.data)
         out += bias.data[None, :, None]
         ctx.cache = (stride, view)
-        return tensorize(out, True, False)
+        out = tensorize(out, True, False)
+        out.children, out.op = [x], 'conv1d'
+        return out 
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -579,7 +602,9 @@ class Conv2d(Function):
         out += bias.data[None, :, None, None]
         ctx.save_for_backward(x, weight)
         ctx.cache = (stride, view)
-        return tensorize(out, True, False)
+        out = tensorize(out, True, False)
+        out.children, out.op = [x], 'conv2d'
+        return out 
  
     @staticmethod
     def backward(ctx, grad_output):
@@ -643,8 +668,8 @@ class MaxPool2d(Function):
         out, pos = pool(x.data, kernel_size, stride,'max',return_max_pos = True)
         ctx.cache = (x.shape, stride, kernel_size, pos)
         out = tensorize(out,True,False)
-
-        return out
+        out.children, out.op = [x], 'maxpool2d'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -683,8 +708,8 @@ class AvgPool2d(Function):
         out, view = pool(x.data, kernel_size, stride,'mean',return_max_pos = False)
         ctx.cache = (x.shape, stride, kernel_size, view)
         out = tensorize(out, True, False)
-
-        return out
+        out.children, out.op = [x], 'avgpool2d'
+        return out 
 
     @staticmethod
     def backward(ctx, grad_output):
