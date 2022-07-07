@@ -51,7 +51,7 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
     def __init__(self):
         super().__init__()
     
-    def _build_graph(self, rankdir:str='LR'):
+    def _build_graph(self, rankdir:str='TB'):
         r"""
             Plots the forward graph
 
@@ -62,18 +62,14 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'chartreuse1', 'style': '', 'shape' : 'box3d'})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'aqua', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
-            name = n.name if n.name != "no_name" else (n.op + '_res' if n.op else n.name)
-            print(f'name label {f"{name} | {n.shape}"}')
-            graph.attr('node',shape = 'box3d',color = 'chartreuse1',style = '')
+            name = n.name if n.name else (n.op + '_res' if n.op else "")
             graph.node(name=str(id(n)), label = f"{name} \n {n.shape}")
             if n.op:
-                graph.attr('node',shape = 'ellipse',color = 'lightblue2', style='filled')
-                print(f'op {n.op} ')
-                graph.node(name=str(id(n)) + n.op, label=n.op)
-                graph.attr('edge',color = 'red')
+                graph.node(name=str(id(n)) + n.op, label=n.op,shape = 'plaintext', style = '')
+                graph.attr('edge',color = 'red',arrowhead="vee")
                 graph.edge(str(id(n)) + n.op, str(id(n)))
         
         for n1, n2 in self.edges:

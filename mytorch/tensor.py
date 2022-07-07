@@ -378,7 +378,7 @@ class Tensor:
     # ************ Visualization *************
     # ****************************************
 
-    def plot_forward(self, rankdir="LR"):
+    def plot_forward(self, rankdir="TB"):
         r"""
             Plots a forward computational graph
 
