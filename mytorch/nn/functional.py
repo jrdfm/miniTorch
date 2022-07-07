@@ -60,14 +60,7 @@ class Log(Function):
         a, = ctx.saved_tensors
         return tensorize(grad_output.data / a.data)
 
-"""EXAMPLE: This represents an Op:Add node to the comp graph.
 
-See `Tensor.__add__()` and `autograd_engine.Function.apply()`
-to understand how this class is used.
-
-Inherits from:
-    Function (autograd_engine.Function)
-"""
 class Add(Function):
     @staticmethod
     def forward(ctx, a, b):
@@ -364,8 +357,6 @@ class Min(Function):
         grad = max_min_backward(grad_output, a.data, out, axis)
         return tensorize(grad)
 
-        
-
 def max_min_forward(a, axis, fun):
 
     if fun == 'max':
@@ -398,8 +389,6 @@ class Cat(Function):
         output = tensorize(np.concatenate(arr,dim), requires_grad, not requires_grad)
         shapes = [i.shape for i in seq if i is not None] # shapes for backward
         ctx.cache = dim, shapes
-        c = [type(i) for i in args]
-        print(f'types {c} ')
         output.children,output.op =  args[0],'cat'
         return output
 
@@ -545,11 +534,6 @@ class Conv1d(Function):
     @staticmethod
     def forward(ctx, x, weight, bias, stride):
         """The forward/backward of a Conv1d Layer in the comp graph.
-        
-        Notes:
-            - Make sure to implement the vectorized version of the pseudocode
-            - See Lec 10 slides # TODO: FINISH LOCATION OF PSEUDOCODE
-            - No, you won't need to implement Conv2d for this homework.
         
         Args:
             x (Tensor): (batch_size, in_channel, input_size) input data
