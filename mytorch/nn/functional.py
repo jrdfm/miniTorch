@@ -398,8 +398,9 @@ class Cat(Function):
         output = tensorize(np.concatenate(arr,dim), requires_grad, not requires_grad)
         shapes = [i.shape for i in seq if i is not None] # shapes for backward
         ctx.cache = dim, shapes
-        # print(f'len args {len(args)}')
-        # output.children, output.op = list(args), 'cat'
+        c = [type(i) for i in args]
+        print(f'types {c} ')
+        output.children,output.op =  args[0],'cat'
         return output
 
     @staticmethod

@@ -9,9 +9,6 @@ def cat(seq,dim=0):
     '''
     Concatenates the given sequence of seq tensors in the given dimension.
     All tensors must either have the same shape (except in the concatenating dimension) or be empty.
-    
-    NOTE: If you are not sure what this operation does, please revisit Recitation 0.
-
     Args:
         seq (list of Tensors) - List of interegers to concatenate
         dim (int) - The dimension along which to concatenate
@@ -36,7 +33,6 @@ def cat(seq,dim=0):
         [1 4 4 3]
         [3 2 3 1]]
     '''
-    # TODO: invoke the appropriate function from functional.py. One-liner; don't overthink
     return F.Cat.apply(seq, dim)
 
 class Tensor:
