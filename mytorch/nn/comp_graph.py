@@ -3,19 +3,7 @@ from graphviz import Digraph
 
 class CompGraphVisualizer:
     """
-        CompGraphVisualizer is the building block object for quick 
-        visualization of a computational graph. Nanograd dynamically 
-        builds a computational graph and keeps track of the operations 
-        made while building the computational graph.
-
-        Performing DFS over the computational graph, CompGraphVisualizer
-        is able to build a trace from a root node. Usually the root node
-        is simply the final result of an operation. For a MLP, it usually
-        is the loss function.
-
-        ..note: CompGraphVisualizer is made to visualize a computational 
-        graph. To have a more holistic view of a neural network architecture,
-        prefer the use of NetworkVisualizer. 
+        Parent class for ForwardGraphVisualizer and BackwardGraphVisualizer
     """
     def __init__(self):
         self.nodes, self.edges = set(), set()
@@ -23,7 +11,6 @@ class CompGraphVisualizer:
     def visualize(self, root, rankdir="LR"):
         """
             Builds the computational graph and displays it.
-
             Args:
                 root (Tensor): node to start building the trace.
                 rankdir (str): graph organization
@@ -55,7 +42,6 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
     def _build_graph(self, rankdir:str='TB'):
         r"""
             Plots the forward graph
-
             Args:
                 rankdir (str): TB (top to bottom graph) | LR (left to right)
 

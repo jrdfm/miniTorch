@@ -51,7 +51,7 @@ class Function:
         # Run subclass's forward with context manager and operation input args
         output_tensor = cls.forward(backward_function.ctx, *args)
         output_tensor.op = cls.__name__
-        output_tensor.children = args if cls.__name__ not in ["Cat"] else args[0]
+        output_tensor.children = args if cls.__name__ not in ["Cat"] else args[0] # kinda dumb but might need to add other functions later
 
         # For each parent tensor in args, add their node to `backward_function.next_functions`
         parent_list = []
