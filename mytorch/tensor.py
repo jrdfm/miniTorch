@@ -66,7 +66,7 @@ class Tensor:
     # ------------------------------------
     def __str__(self):
         return "{}{}".format(
-            str(self.data),
+            str(self.data.shape),
             ", grad_fn={}".format(self.grad_fn.__class__.__name__) if self.grad_fn is not None else ""
         )
 
@@ -231,8 +231,8 @@ class Tensor:
     def exp(self):
         """Element-wise exp of this tensor, adding to comp graph"""
         return F.Exp.apply(self)
-    def acc(self):
-        return F.AccumulateGrad(self)
+    # def acc(self):
+    #     return F.AccumulateGrad(self)
     
     def sqrt(self):
         return F.Sqrt.apply(self)    

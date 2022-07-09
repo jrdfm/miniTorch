@@ -36,12 +36,13 @@ class CompGraphVisualizer:
         """Performs a recursive depth-first search over the computational graph."""
         if node not in self.nodes:
             if node:
-                # print(f'self.name != "None" {node.name != "None" }')
                 self.nodes.add(node)
-                # print(f'added {node.name}')
+                # print(f'added {node.name} {node.op} node type {type(node)}  node.children { node.children}')
             for child in node.children:
-                self.edges.add((child, node))
-                self._build_trace(child)
+                # print(f'type child {type(child)}')
+                if type(child).__name__ == "Tensor":
+                    self.edges.add((child, node))
+                    self._build_trace(child)
     
     def _build_graph(self):
         raise NotImplementedError("build_graph() must be implemented for subclasses!")
@@ -62,13 +63,13 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cadetblue1', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cornflowerblue', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
             name = n.name if n.name else (n.op + '_res' if n.op else "")
-            graph.node(name=str(id(n)), label = f"{name} \n {n.shape}")
+            graph.node(name=str(id(n)), label = f"{name}\n{n.shape}", fontsize="10pt")
             if n.op:
-                graph.node(name=str(id(n)) + n.op, label=n.op,shape = 'plaintext', style = '')
+                graph.node(name=str(id(n)) + n.op, label=n.op,shape = 'plaintext', fontsize="10pt",style = '')
                 graph.attr('edge',color = 'red',arrowhead="vee")
                 graph.edge(str(id(n)) + n.op, str(id(n)))
         
@@ -97,17 +98,26 @@ class BackwardGraphVisualizer(CompGraphVisualizer):
                     a unique number for every Python object.
         """
         assert rankdir in ['LR', 'TB'], f"Unexpected rankdir argument (TB, LR available). Got {rankdir}."
-        graph = Digraph(format='png', graph_attr={'rankdir': rankdir})
+        graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'darkolivegreen1', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
-            name = n.name if n.name != "no_name" else (n.op + '_res' if n.op else n.name)
-            graph.node(
-                name=str(id(n)), 
-                label=f"{name} | {n.shape} | {n.grad_fn.function_name}" if n.grad_fn else f"{name} | {n.shape}",
-                shape="record")
-            
+            name = n.name if n.name else (n.op + '_res' if n.op else n.name)
+            if not n.grad_fn:
+                graph.node(name=str(id(n)), label=f"{name}\n{n.shape}\nAccumulateGrad", fontsize="10pt")
+            else:
+                function_name = n.grad_fn.function_name 
+                graph.node(name=str(id(n)), label=f"{name}\n{n.shape}", fontsize="10pt")
+                graph.node(name=str(id(n)) + function_name , label= function_name + " backwrd",shape = 'plaintext',fontsize="10pt", style = '')
+                graph.attr('edge',color = 'red',arrowhead="vee",dir="back")
+                graph.edge(str(id(n)) + function_name, str(id(n)))
+
+        
         for n1, n2 in self.edges:
-            graph.edge(str(id(n1)), str(id(n2)))
+            graph.attr('edge',color = 'red',arrowhead="vee",dir="back")
+            if n2.grad_fn:
+                graph.edge(str(id(n1)), str(id(n2)) + n2.grad_fn.function_name)
+            else:
+                graph.edge(str(id(n1)), str(id(n2)))
         
         return graph
         

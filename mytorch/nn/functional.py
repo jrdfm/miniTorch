@@ -21,7 +21,7 @@ class Transpose(Function):
         requires_grad = a.requires_grad
         is_leaf = not requires_grad
         out = tensorize(a.data.T, requires_grad, is_leaf)
-        out.children, out.op  = [a], 'transpose'
+        out.children, out.op  = [a], 'ASS'
         return out
 
     @staticmethod
@@ -423,34 +423,7 @@ class Slice(Function):
         return tensorize(out), None
 
 
-class AccumulateGrad():
-    """Represents node where gradient must be accumulated.
-    Args:
-        tensor (Tensor): The tensor where the gradients are accumulated in `.grad`
-    """
-
-    def __init__(self, tensor):
-        self.variable = tensor
-        self.next_functions = []  # nodes of current node's parents (this WILL be empty)
-        # exists just to be consistent in format with BackwardFunction
-        self.function_name = "AccumulateGrad"  # just for convenience lol
-
-    def apply(self, arg):
-        """Accumulates gradient provided.
-        (Hint: Notice name of function is the same as BackwardFunction's `.apply()`)
-        Args:
-            arg (Tensor): Gradient to accumulate
-        """
-        # if no grad stored yet, initialize. otherwise +=
-        if self.variable.grad is None:
-            self.variable.grad = tensor.Tensor(arg.data)
-        else:
-            self.variable.grad.data += arg.data
-
-        # Some tests to make sure valid grads were stored.
-        shape = self.variable.shape
-        grad_shape = self.variable.grad.shape
-        assert shape == grad_shape, (shape, grad_shape)       
+   
 
 def cross_entropy(predicted, target):
     """Calculates Cross Entropy Loss (XELoss) between logits and true labels.
@@ -491,11 +464,12 @@ class Dropout(Function):
         mask = mask/(1-p)
         mask = tensorize(mask, False, name="dropout_mask")
         ctx.save_for_backward(mask)
-        
         if is_train:
             out = x * mask
             out.name = 'dropout_res'
+            return out
         return out
+        # return x * tensorize(1 - p, name='dropout_prob',param = True)
             
     @staticmethod
     def backward(ctx, grad_output):

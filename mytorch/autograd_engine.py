@@ -50,6 +50,14 @@ class Function:
         backward_function = BackwardFunction(cls)
         # Run subclass's forward with context manager and operation input args
         output_tensor = cls.forward(backward_function.ctx, *args)
+        output_tensor.op = cls.__name__
+        l = ["Cat"]
+        # t = [type(i) for i in args]
+        # print(f'name, type args {cls.__name__,type(args),t }')
+        # print(f'children {children}')
+        children = args if cls.__name__ not in l else args[0]
+        output_tensor.children = args if cls.__name__ not in l else args[0]
+
         # For each parent tensor in args, add their node to `backward_function.next_functions`
         parent_list = []
         for i in args:
@@ -64,7 +72,7 @@ class Function:
         for parent in parent_list:
             if parent.is_leaf and parent.requires_grad:
                 # accumulate the gradient so we initialize accumulate grad
-                next_function = parent.acc()
+                next_function = AccumulateGrad(parent)
                 # then check if this is a backward function node
             elif not parent.is_leaf and parent.requires_grad:
                 # backward function
@@ -111,6 +119,34 @@ class ContextManager:
 
             self.saved_tensors.append(arg.copy())
 
+class AccumulateGrad():
+    """Represents node where gradient must be accumulated.
+    Args:
+        tensor (Tensor): The tensor where the gradients are accumulated in `.grad`
+    """
+
+    def __init__(self, tensor):
+        self.variable = tensor
+        self.next_functions = []  # nodes of current node's parents (this WILL be empty)
+        # exists just to be consistent in format with BackwardFunction
+        self.function_name = "AccumulateGrad"  # just for convenience lol
+
+    def apply(self, arg):
+        """Accumulates gradient provided.
+        (Hint: Notice name of function is the same as BackwardFunction's `.apply()`)
+        Args:
+            arg (Tensor): Gradient to accumulate
+        """
+        # if no grad stored yet, initialize. otherwise +=
+        if self.variable.grad is None:
+            self.variable.grad = tensor.Tensor(arg.data)
+        else:
+            self.variable.grad.data += arg.data
+
+        # Some tests to make sure valid grads were stored.
+        shape = self.variable.shape
+        grad_shape = self.variable.grad.shape
+        assert shape == grad_shape, (shape, grad_shape)    
 
 class BackwardFunction:
     """Representing an intermediate node where gradient must be passed.
