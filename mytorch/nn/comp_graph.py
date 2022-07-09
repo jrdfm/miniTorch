@@ -66,8 +66,8 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
         graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cornflowerblue', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
-            name = n.name if n.name else (n.op + '_res' if n.op else "")
-            graph.node(name=str(id(n)), label = f"{name}\n{n.shape}", fontsize="10pt")
+            # name = n.name if n.name else (n.op + '_res' if n.op else "")
+            graph.node(name=str(id(n)), label = f"{n.name}\n{n.shape}" if n.name else f"{n.shape}", fontsize="10pt")
             if n.op:
                 graph.node(name=str(id(n)) + n.op, label=n.op,shape = 'plaintext', fontsize="10pt",style = '')
                 graph.attr('edge',color = 'red',arrowhead="vee")
@@ -101,12 +101,11 @@ class BackwardGraphVisualizer(CompGraphVisualizer):
         graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'darkolivegreen1', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
-            name = n.name if n.name else (n.op + '_res' if n.op else n.name)
             if not n.grad_fn:
-                graph.node(name=str(id(n)), label=f"{name}\n{n.shape}\nAccumulateGrad", fontsize="10pt")
+                graph.node(name=str(id(n)), label=f"{n.name}\n{n.shape}\nAccumulateGrad" if n.name else f"{n.shape}\nAccumulateGrad", fontsize="10pt")
             else:
                 function_name = n.grad_fn.function_name 
-                graph.node(name=str(id(n)), label=f"{name}\n{n.shape}", fontsize="10pt")
+                graph.node(name=str(id(n)), label=f"{n.shape}", fontsize="10pt")
                 graph.node(name=str(id(n)) + function_name , label= function_name + " backwrd",shape = 'plaintext',fontsize="10pt", style = '')
                 graph.attr('edge',color = 'red',arrowhead="vee",dir="back")
                 graph.edge(str(id(n)) + function_name, str(id(n)))
