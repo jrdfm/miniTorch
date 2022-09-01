@@ -24,9 +24,7 @@ class CompGraphVisualizer:
         if node not in self.nodes:
             if node:
                 self.nodes.add(node)
-                # print(f'added {node.name} {node.op} node type {type(node)}  node.children { node.children}')
             for child in node.children:
-                # print(f'type child {type(child)}')
                 if type(child).__name__ == "Tensor":
                     self.edges.add((child, node))
                     self._build_trace(child)
@@ -52,7 +50,6 @@ class ForwardGraphVisualizer(CompGraphVisualizer):
         graph = Digraph(format='png', graph_attr={'rankdir': rankdir},node_attr={'color': 'cornflowerblue', 'style': 'filled', 'shape' : 'oval','fixedsize' :'false'})
         
         for n in self.nodes:
-            # name = n.name if n.name else (n.op + '_res' if n.op else "")
             graph.node(name=str(id(n)), label = f"{n.name}\n{n.shape}" if n.name else f"{n.shape}", fontsize="10pt")
             if n.op:
                 graph.node(name=str(id(n)) + n.op, label=n.op,shape = 'plaintext', fontsize="10pt",style = '')
@@ -96,7 +93,6 @@ class BackwardGraphVisualizer(CompGraphVisualizer):
                 graph.attr('edge',color = 'red',arrowhead="vee",dir="back")
                 graph.edge(str(id(n)) + function_name, str(id(n)))
 
-        
         for n1, n2 in self.edges:
             graph.attr('edge',color = 'red',arrowhead="vee",dir="back")
             if n2.grad_fn:

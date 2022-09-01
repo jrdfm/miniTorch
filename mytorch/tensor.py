@@ -1,5 +1,5 @@
 import numpy as np
-
+import functools
 import mytorch.autograd_engine as autograd_engine
 from mytorch.nn import functional as F
 from mytorch.nn.comp_graph import ForwardGraphVisualizer, BackwardGraphVisualizer
@@ -61,12 +61,45 @@ class Tensor:
         self.name, self.op = name, op
         self.children = []
 
+    @functools.lru_cache()
+    def build_graph_topology(self):
+        def dfs(node, visited, nodes):
+            visited.add(node)
+            if node.ctx:
+                for parent in node.ctx.parents:
+                    if parent not in visited:
+                        dfs(parent, visited, nodes)
+                nodes.append(node)
+            return nodes
+        return dfs(self, set(), list())
+    def bkwrd(self):
+        if self.shape != (1,):
+            raise Exception("Can't initiate backprop from a non scalar-valued tensor.")
+
+        self.grad = Tensor.ones(self.shape, requires_grad=False)
+
+        for node in reversed(self.build_graph_topology()):
+            assert node.grad is not None, 'Got an unitialized gradient node'
+
+            gradients = node.ctx.backward(node.ctx, node.grad.data)
+
+            if len(node.ctx.parents) == 1:
+                gradients = [gradients]
+            
+            for tensor, grad in zip(node.ctx.parents, gradients):
+                if grad is not None: 
+                    assert grad.shape == tensor.shape, f"Mismatched tensor and grad shape. Got {grad.shape} and {tensor.shape}. \
+                                                         Tensor and gradient should have the same shape."
+                    if tensor.grad is None:
+                        tensor.grad = Tensor(grad, requires_grad=False)
+                    else:
+                        tensor.grad += Tensor(grad, requires_grad=False)
     # ------------------------------------
     # [Not important] For printing tensors
     # ------------------------------------
     def __str__(self):
         return "{}{}".format(
-            str(self.data.shape),
+            str(self.data),
             ", grad_fn={}".format(self.grad_fn.__class__.__name__) if self.grad_fn is not None else ""
         )
 
@@ -122,33 +155,33 @@ class Tensor:
     # Below methods can be used WITHOUT creating a tensor first
     # (For example, we can call Tensor.zeros(3,2) directly)
 
-    @staticmethod
-    def zeros(*shape):
+    @classmethod
+    def zeros(cls,*shape, **kwargs):
         """Creates new tensor filled with 0's
         Args:
             shape: comma separated ints i.e. Tensor.zeros(3,4,5)
         Returns:
             Tensor: filled w/ 0's
         """
-        return Tensor(np.zeros(shape))
+        return cls(np.zeros(shape), **kwargs)
 
-    @staticmethod
-    def ones(*shape):
+    @classmethod
+    def ones(cls,*shape, **kwargs):
         """Creates new tensor filled with 1's
         Note: if you look up "asterik args python", you'll see this function is
         called as follows: ones(1, 2, 3), not: ones((1, 2, 3))
         """
-        return Tensor(np.ones(shape))
+        return cls(np.ones(shape), **kwargs)
 
     @staticmethod
     def arange(*interval):
         """Creates new tensor filled by `np.arange()`"""
         return Tensor(np.arange(*interval))
 
-    @staticmethod
-    def randn(*shape):
+    @classmethod
+    def randn(cls,*shape, **kwargs):
         """Creates new tensor filled by normal distribution (mu=0, sigma=1)"""
-        return Tensor(np.random.normal(0, 1, shape))
+        return cls(np.random.normal(0, 1, shape), **kwargs)
 
     @staticmethod
     def empty(*shape):
