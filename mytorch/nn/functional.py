@@ -180,7 +180,7 @@ class Pow(Function):
     def forward(ctx, a, b):
         # Check that both args are tensors
         if not (type(a).__name__ == 'Tensor'):
-            raise Exception("a must be Tensors: {}".format(type(a).__name__))
+            raise Exception("a must be Tensor: {}".format(type(a).__name__))
         if (type(b).__name__ == 'int' or type(b).__name__ == 'float'):
             b = tensor.Tensor(np.array(b))
         ctx.save_for_backward(a, b)

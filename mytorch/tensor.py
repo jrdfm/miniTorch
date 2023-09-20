@@ -72,9 +72,11 @@ class Tensor:
                 nodes.append(node)
             return nodes
         return dfs(self, set(), list())
+    
     def bkwrd(self):
         if self.shape != (1,):
-            raise Exception("Can't initiate backprop from a non scalar-valued tensor.")
+            raise Exception(
+                "Can't initiate backprop from a non scalar-valued tensor.")
 
         self.grad = Tensor.ones(self.shape, requires_grad=False)
 
@@ -85,9 +87,9 @@ class Tensor:
 
             if len(node.ctx.parents) == 1:
                 gradients = [gradients]
-            
+
             for tensor, grad in zip(node.ctx.parents, gradients):
-                if grad is not None: 
+                if grad is not None:
                     assert grad.shape == tensor.shape, f"Mismatched tensor and grad shape. Got {grad.shape} and {tensor.shape}. \
                                                          Tensor and gradient should have the same shape."
                     if tensor.grad is None:
